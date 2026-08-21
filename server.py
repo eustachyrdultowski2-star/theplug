@@ -6,6 +6,7 @@ import time
 import brand_detect
 import image_search
 import store
+import auth
 
 PORT = 4190
 DIR = os.path.dirname(os.path.abspath(__file__))
@@ -13,11 +14,36 @@ DIR = os.path.dirname(os.path.abspath(__file__))
 
 class Handler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *a, **k):
+        self._extra_headers = []      # per request, never shared between users
         super().__init__(*a, directory=DIR, **k)
+
+    # ---------- helpers ----------
+    def _token(self):
+        raw = self.headers.get("Cookie") or ""
+        for part in raw.split(";"):
+            k, _, v = part.strip().partition("=")
+            if k == "plug_session":
+                return v
+        return None
+
+    def _me(self):
+        return auth.session_user(self._token())
+
+    def _set_cookie(self, token, clear=False):
+        attrs = "Path=/; HttpOnly; SameSite=Lax"
+        if clear:
+            self._extra_headers.append(("Set-Cookie", f"plug_session=; Max-Age=0; {attrs}"))
+        else:
+            self._extra_headers.append(
+                ("Set-Cookie", f"plug_session={token}; Max-Age={60*60*24*60}; {attrs}"))
 
     def do_GET(self):
         if self.path.startswith("/api/"):
             name = self.path.split("?")[0]
+            if name == "/api/me":
+                me = self._me()
+                return self._json(200, {"user": me,
+                                        "saved": auth.saved_ids(me["id"]) if me else []})
             if name == "/api/alerts":
                 return self._json(200, {"alerts": store.load("alerts", [])[::-1][:40],
                                         "watches": store.load("watches", [])})
@@ -35,11 +61,39 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def do_POST(self):
         if self.path not in ("/api/detect", "/api/image", "/api/watch",
-                             "/api/subscribe", "/api/score"):
+                             "/api/subscribe", "/api/score",
+                             "/api/auth/register", "/api/auth/login",
+                             "/api/auth/logout", "/api/save"):
             return self._json(404, {"error": "not found"})
         try:
             n = int(self.headers.get("Content-Length", 0))
             body = json.loads(self.rfile.read(n) or b"{}")
+            if self.path == "/api/auth/register":
+                user, err = auth.register(body.get("email"), body.get("password"))
+                if err:
+                    return self._json(400, {"error": err})
+                self._set_cookie(auth.open_session(user["id"]))
+                return self._json(200, {"user": user, "saved": []})
+
+            if self.path == "/api/auth/login":
+                user, err = auth.login(body.get("email"), body.get("password"))
+                if err:
+                    return self._json(401, {"error": err})
+                self._set_cookie(auth.open_session(user["id"]))
+                return self._json(200, {"user": user, "saved": auth.saved_ids(user["id"])})
+
+            if self.path == "/api/auth/logout":
+                auth.close_session(self._token())
+                self._set_cookie(None, clear=True)
+                return self._json(200, {"ok": True})
+
+            if self.path == "/api/save":
+                me = self._me()
+                if not me:
+                    return self._json(401, {"error": "sign_in_required"})
+                ids = auth.toggle_saved(me["id"], body.get("id"), bool(body.get("on", True)))
+                return self._json(200, {"saved": ids})
+
             if self.path == "/api/watch":          # follow a piece for restock / price drops
                 item = body.get("item") or {}
                 on = bool(body.get("on", True))
@@ -96,6 +150,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.send_response(code)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(data)))
+        for k, v in self._extra_headers:
+            self.send_header(k, v)
+        self._extra_headers = []
         self.end_headers()
         self.wfile.write(data)
 

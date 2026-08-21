@@ -301,6 +301,19 @@ main{padding:34px 0 90px}
 .drop-msg{font-size:13px;color:var(--accent);margin-top:10px;min-height:18px}
 @media(max-width:560px){.drop-form{flex-direction:column}}
 
+
+/* save heart on cards */
+.save-btn{position:absolute;top:9px;right:9px;z-index:4;width:30px;height:30px;border-radius:50%;
+  display:grid;place-items:center;background:rgba(0,0,0,.45);backdrop-filter:blur(6px);
+  border:1px solid rgba(255,255,255,.2);color:#fff;opacity:0;transform:scale(.85);
+  transition:opacity .2s,transform .2s,color .2s}
+.card:hover .save-btn,.save-btn.on{opacity:1;transform:none}
+.save-btn svg{width:15px;height:15px}
+.save-btn.on{color:var(--accent-2);border-color:var(--accent-2)}
+.save-btn.on svg{fill:currentColor}
+@media(hover:none){.save-btn{opacity:1;transform:none}}
+#openAuth.signed{border-color:var(--accent);color:var(--accent)}
+
 /* ---------- routed pages ---------- */
 .brand-page,.item-page{padding:26px 0 40px}
 .brand-back{display:inline-block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:20px;text-decoration:none}
@@ -1122,6 +1135,9 @@ const I18N = {
     "plan.cta_sub":"Get Plug+","plan.cta_life":"Become a founder","plan.popular":"MOST POPULAR",
     "plus.free":"Free forever: browse, search, submit & help ID.","plus.disclaimer":"Prototype — no real payment is taken.",
     "toast.plus":"Prototype — no real payment. But you get the vibe ✦",
+    "auth.err.exists":"That email already has an account. Try signing in.","auth.err.bad_credentials":"Wrong email or password.","auth.err.weak_password":"Password needs at least 8 characters.","auth.err.bad_email":"That email looks off.","auth.err.failed":"Something went wrong. Try again.",
+    "acct.saved":"Saved pieces","acct.plan":"Plan","acct.free":"Free","acct.signout":"Sign out","acct.signedout":"Signed out",
+    "save.added":"Saved","save.removed":"Removed from saved","save.needs_account":"Make an account to save pieces",
     "auth.nav":"Sign in","auth.signin":"Sign in","auth.signup":"Create account",
     "auth.welcome_in":"Welcome back","auth.welcome_up":"Join The Plug",
     "auth.sub_in":"Sign in to save finds and get restock alerts.","auth.sub_up":"Create an account and build a feed of brands you love.",
@@ -1129,7 +1145,7 @@ const I18N = {
     "auth.or":"or","auth.email":"Email","auth.password":"Password","auth.confirm":"Confirm password",
     "auth.email_ph":"you@email.com","auth.submit_in":"Sign in","auth.submit_up":"Create account",
     "auth.to_up":"New here? Create an account","auth.to_in":"Already have an account? Sign in",
-    "auth.terms":"By continuing you agree to our Terms & Privacy.","auth.pw_short":"Password must be at least 6 characters","auth.pw_match":"Passwords don't match",
+    "auth.terms":"By continuing you agree to our Terms & Privacy.","auth.pw_short":"Password must be at least 8 characters","auth.pw_match":"Passwords don't match",
     "auth.done_title":"You're in ✦","auth.done_desc":"Welcome to The Plug. Let's find some fits.","auth.done_btn":"Start exploring",
     "community.title":"Help ID these",
     "community.sub":"Somebody spotted these in a reel but nobody knows the brand yet. Recognise one? Tag it and get credit.",
@@ -1218,6 +1234,9 @@ const I18N = {
     "plan.cta_sub":"Biorę Plug+","plan.cta_life":"Zostań founderem","plan.popular":"NAJCZĘŚCIEJ WYBIERANE",
     "plus.free":"Za darmo na zawsze: przeglądaj, szukaj, wrzucaj i rozpoznawaj.","plus.disclaimer":"Prototyp — brak realnej płatności.",
     "toast.plus":"Prototyp — bez realnej płatności. Ale czujesz klimat ✦",
+    "auth.err.exists":"To konto już istnieje. Zaloguj się.","auth.err.bad_credentials":"Zły e-mail albo hasło.","auth.err.weak_password":"Hasło musi mieć min. 8 znaków.","auth.err.bad_email":"Ten adres wygląda źle.","auth.err.failed":"Coś poszło nie tak. Spróbuj ponownie.",
+    "acct.saved":"Zapisane rzeczy","acct.plan":"Plan","acct.free":"Darmowy","acct.signout":"Wyloguj","acct.signedout":"Wylogowano",
+    "save.added":"Zapisane","save.removed":"Usunięte z zapisanych","save.needs_account":"Załóż konto, żeby zapisywać",
     "auth.nav":"Zaloguj się","auth.signin":"Logowanie","auth.signup":"Rejestracja",
     "auth.welcome_in":"Witaj z powrotem","auth.welcome_up":"Dołącz do The Plug",
     "auth.sub_in":"Zaloguj się, by zapisywać znaleziska i dostawać alerty o dostępności.","auth.sub_up":"Załóż konto i zbuduj feed marek, które kochasz.",
@@ -1225,7 +1244,7 @@ const I18N = {
     "auth.or":"albo","auth.email":"E-mail","auth.password":"Hasło","auth.confirm":"Powtórz hasło",
     "auth.email_ph":"ty@email.com","auth.submit_in":"Zaloguj się","auth.submit_up":"Załóż konto",
     "auth.to_up":"Nowy tutaj? Załóż konto","auth.to_in":"Masz już konto? Zaloguj się",
-    "auth.terms":"Kontynuując akceptujesz Regulamin i Prywatność.","auth.pw_short":"Hasło musi mieć min. 6 znaków","auth.pw_match":"Hasła się nie zgadzają",
+    "auth.terms":"Kontynuując akceptujesz Regulamin i Prywatność.","auth.pw_short":"Hasło musi mieć min. 8 znaków","auth.pw_match":"Hasła się nie zgadzają",
     "auth.done_title":"Jesteś w środku ✦","auth.done_desc":"Witaj w The Plug. Znajdźmy jakieś ciuchy.","auth.done_btn":"Zaczynamy",
     "community.title":"Pomóż rozpoznać",
     "community.sub":"Ktoś wypatrzył to w rolce, ale nikt nie zna marki. Kojarzysz? Otaguj i zgarnij punkty.",
@@ -1374,7 +1393,7 @@ let filterCat = null;
 let query = "";
 const PREVIEW_COUNT = 24;   // homepage taste, so the page stays scrollable
 const PAGE = 48;            // how many more arrive per click
-let feedOpen = false, feedShown = PAGE;
+let feedOpen = false, feedShown = PAGE, savedOnly = false;
 
 /* ============ render helpers ============ */
 function renderTrending(){
@@ -1409,7 +1428,8 @@ function renderFilters(){
   // clearing "All" also drops any vibe, so a category never silently
   // collapses to one result because a style filter was still on
   bar.appendChild(mk(t("filter.all"), !filterCat&&!filterStyle, ()=>{
-    filterCat=null;filterStyle=null;render();renderFilters();renderVibes();}));
+    filterCat=null;filterStyle=null;savedOnly=false;render();renderFilters();renderVibes();
+    document.getElementById("feedTitle").textContent=t("feed.title");}));
   const sep=document.createElement("div");sep.className="chip-sep";bar.appendChild(sep);
   CATS.forEach(c=> bar.appendChild(mk(t("c."+c), filterCat===c, ()=>{
     filterCat=filterCat===c?null:c;
@@ -1423,6 +1443,7 @@ function renderFilters(){
 }
 
 function matchItem(it){
+  if(savedOnly && !SAVED.has(String(it.id))) return false;
   if(filterCat && it.cat!==filterCat) return false;
   if(filterStyle && it.style!==filterStyle) return false;
   if(query){
@@ -1445,6 +1466,9 @@ function cardHTML(it, featured){
     <div class="ph">
       <img loading="lazy" src="${PHOTO(it)}" onerror="this.onerror=null;this.src='${IMG(it.seed)}'" alt="${it.brand} ${it.name}">
       ${badge}
+      <button class="save-btn" data-save="${it.id}" aria-label="Save" title="Save">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 1 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg>
+      </button>
       <span class="src-badge">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
         ${it.src}
@@ -1479,7 +1503,7 @@ function brandCardHTML(b){
 
 function render(){
   const grid=document.getElementById("grid");
-  const searching = !!(query || filterStyle || filterCat);
+  const searching = !!(query || filterStyle || filterCat || savedOnly);
   // browsing → curated slice; searching → the whole 1000+ catalog
   // opened feed browses the entire catalog, the homepage teaser stays curated
   const pool = (searching || feedOpen)
@@ -1525,6 +1549,10 @@ function render(){
     (list.length<full.length ? `${list.length} / ${full.length}` : `${full.length}`)
     + " " + (lang==="pl"?"wyników":"results");
   grid.querySelectorAll(".card[data-id]").forEach(c=> c.onclick=()=>go("/item/"+c.dataset.id));
+  grid.querySelectorAll("[data-save]").forEach(b=>{
+    b.classList.toggle("on", SAVED.has(String(b.dataset.save)));
+    b.onclick=e=>toggleSave(b.dataset.save,b,e);
+  });
   observeReveal();
 }
 
@@ -2212,18 +2240,90 @@ function renderAuth(mode){
 
 function submitAuth(up){
   const err=document.getElementById("authErr");
+  const email=document.getElementById("authEmail").value.trim();
   const pw=document.getElementById("authPw").value;
-  if(pw.length<6){err.textContent=t("auth.pw_short");return;}
+  if(pw.length<8){err.textContent=t("auth.pw_short");return;}
   if(up && pw!==document.getElementById("authPw2").value){err.textContent=t("auth.pw_match");return;}
-  document.getElementById("authBody").innerHTML=`
-    <div class="form-success" style="padding:60px 26px">
-      <div class="check"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg></div>
-      <h3 class="anton" style="font-size:28px;text-transform:uppercase;margin:0 0 8px">${t("auth.done_title")}</h3>
-      <p style="color:var(--muted);max-width:320px;margin:0 auto 22px">${t("auth.done_desc")}</p>
-      <button class="btn btn-primary" data-close style="padding:12px 30px">${t("auth.done_btn")}</button>
+
+  const btn=document.querySelector("#authForm .auth-submit");
+  btn.disabled=true; err.textContent="";
+  fetch("/api/auth/"+(up?"register":"login"),{method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({email,password:pw})})
+    .then(async r=>{
+      const d=await r.json();
+      if(!r.ok){ err.textContent=t("auth.err."+(d.error||"failed"))||t("auth.err.failed");
+                 btn.disabled=false; return; }
+      ME=d.user; SAVED=new Set((d.saved||[]).map(String));
+      paintAccount(); render();
+      document.getElementById("authBody").innerHTML=`
+        <div class="form-success" style="padding:60px 26px">
+          <div class="check"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg></div>
+          <h3 class="anton" style="font-size:28px;text-transform:uppercase;margin:0 0 8px">${t("auth.done_title")}</h3>
+          <p style="color:var(--muted);max-width:320px;margin:0 auto 22px">${esc(ME.email)}</p>
+          <button class="btn btn-primary" data-close style="padding:12px 30px">${t("auth.done_btn")}</button>
+        </div>`;
+      document.querySelector("#authBody [data-close]").onclick=()=>closeOverlay("authOverlay");
+      confettiBurst();
+    })
+    .catch(()=>{ err.textContent=t("auth.err.failed"); btn.disabled=false; });
+}
+
+/* ---------- who is signed in, and what they saved ---------- */
+let ME=null, SAVED=new Set();
+
+function loadMe(){
+  return fetch("/api/me").then(r=>r.json()).then(d=>{
+    ME=d.user; SAVED=new Set((d.saved||[]).map(String));
+    paintAccount();
+  }).catch(()=>{});
+}
+
+function paintAccount(){
+  const btn=document.getElementById("openAuth");
+  if(!btn) return;
+  btn.textContent = ME ? (ME.name||ME.email.split("@")[0]) : t("auth.nav");
+  btn.classList.toggle("signed", !!ME);
+  btn.onclick = ME ? openAccountMenu : (()=>{renderAuth("signin");openOverlay("authOverlay");});
+}
+
+function openAccountMenu(){
+  const box=document.getElementById("authBody");
+  box.innerHTML=`<div class="modal-form">
+      <h3>${esc(ME.name||"")}</h3>
+      <p class="desc">${esc(ME.email)}</p>
+      <div class="kv"><span>${t("acct.saved")}</span><b>${SAVED.size}</b></div>
+      <div class="kv"><span>${t("acct.plan")}</span><b>${ME.plus?"Plug+":t("acct.free")}</b></div>
+      <button class="btn btn-ghost" style="width:100%;padding:13px;margin-top:16px" id="signOut">${t("acct.signout")}</button>
     </div>`;
-  document.querySelector("#authBody [data-close]").onclick=()=>closeOverlay("authOverlay");
-  confettiBurst();
+  openOverlay("authOverlay");
+  document.getElementById("signOut").onclick=()=>{
+    fetch("/api/auth/logout",{method:"POST"}).finally(()=>{
+      ME=null; SAVED=new Set(); paintAccount(); render(); closeOverlay("authOverlay");
+      toast(t("acct.signedout"));
+    });
+  };
+}
+
+function showSaved(){
+  if(!ME){ renderAuth("signup"); openOverlay("authOverlay"); toast(t("save.needs_account")); return; }
+  query=""; filterCat=null; filterStyle=null; savedOnly=true;
+  feedOpen=true; feedShown=PAGE;
+  renderFilters(); render();
+  document.getElementById("feedTitle").textContent=t("dock.saved");
+  scrollToFeed();
+}
+
+/* ---------- saving pieces ---------- */
+function toggleSave(id,btn,e){
+  if(e){e.stopPropagation();e.preventDefault();}
+  if(!ME){ renderAuth("signup"); openOverlay("authOverlay"); toast(t("save.needs_account")); return; }
+  const on=!SAVED.has(String(id));
+  on?SAVED.add(String(id)):SAVED.delete(String(id));
+  if(btn) btn.classList.toggle("on",on);
+  fetch("/api/save",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({id,on})}).catch(()=>{});
+  toast(on?t("save.added"):t("save.removed"));
 }
 
 function confettiBurst(){
@@ -2331,7 +2431,7 @@ const DOCK_APPS=[
       document.getElementById("grid").scrollIntoView({behavior:"smooth",block:"start"});}},
   {id:"vibes",  i18n:"dock.vibes",  act:()=>{document.getElementById("vibeRow").scrollIntoView({behavior:"smooth",block:"center"});}},
   {id:"id",     i18n:"dock.id",     accent:3, act:()=>{document.getElementById("community").scrollIntoView({behavior:"smooth",block:"start"});}},
-  {id:"saved",  i18n:"dock.saved",  act:()=>{renderPlus();openOverlay("plusOverlay");}},
+  {id:"saved",  i18n:"dock.saved",  act:()=>showSaved()},
   {id:"plus",   i18n:"dock.plus",   accent:2, act:()=>{renderPlus();openOverlay("plusOverlay");}},
   {id:"account",i18n:"dock.account",act:()=>{renderAuth("signin");openOverlay("authOverlay");}}
 ];
@@ -2545,7 +2645,7 @@ document.querySelectorAll("#tabbar button").forEach(b=> b.onclick=()=>{
   if(tab==="feed"){window.scrollTo({top:0,behavior:"smooth"});}
   if(tab==="search"){document.querySelector(".hero-search").scrollIntoView({behavior:"smooth",block:"center"});setTimeout(()=>document.getElementById("heroSearch").focus(),400);}
   if(tab==="pending"){document.getElementById("community").scrollIntoView({behavior:"smooth",block:"start"});}
-  if(tab==="saved"){renderPlus();openOverlay("plusOverlay");}
+  if(tab==="saved"){showSaved();}
 });
 
 /* tiny toast */
@@ -2787,6 +2887,7 @@ function renderItemPage(id){
 applyI18n();
 route();
 loadAlerts();
+loadMe();
 
 /* installable app: register the worker, and accept links shared into it */
 if("serviceWorker" in navigator){
