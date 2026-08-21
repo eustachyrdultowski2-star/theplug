@@ -1,0 +1,2 @@
+# The API itself needs nothing outside the standard library.
+# Pillow is only used by shrink_photos.py, which never runs on the server.

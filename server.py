@@ -8,7 +8,7 @@ import image_search
 import store
 import auth
 
-PORT = 4190
+PORT = int(os.environ.get("PORT", 4190))   # hosts assign the port
 DIR = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -163,6 +163,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 if __name__ == "__main__":
     os.chdir(DIR)
     socketserver.ThreadingTCPServer.allow_reuse_address = True
-    with socketserver.ThreadingTCPServer(("", PORT), Handler) as httpd:
-        print(f"The Plug dev server -> http://localhost:{PORT}  (POST /api/detect)")
+    with socketserver.ThreadingTCPServer(("0.0.0.0", PORT), Handler) as httpd:
+        print(f"The Plug server on :{PORT}")
         httpd.serve_forever()
