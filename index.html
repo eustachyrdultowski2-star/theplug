@@ -166,6 +166,21 @@ header.nav{position:sticky;top:0;z-index:50;background:rgba(11,11,13,.82);backdr
 .icon-only{width:42px;height:42px;display:grid;place-items:center;border-radius:999px;border:1px solid var(--border);background:var(--surface)}
 @media(max-width:820px){.nav-search{display:none}}
 
+
+/* Below ~1000px the nav runs out of room and pushes the page sideways.
+   Both of these actions also live in the dock / bottom bar. */
+@media(max-width:1000px){
+  #openSubmit{display:none}
+  .nav-actions{gap:7px}
+}
+@media(max-width:820px){
+  #openPlus span{display:none}          /* keep the star, drop the word */
+  #openPlus{padding:10px 12px}
+}
+@media(max-width:680px){
+  #openAuth{max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+}
+
 /* ---------- hero ---------- */
 .hero{position:relative;overflow:hidden;border-bottom:1px solid var(--border)}
 .hero-inner{padding:64px 0 52px;position:relative;z-index:2}
@@ -339,7 +354,7 @@ main{padding:34px 0 90px}
    Cards spread like a hand of cards; hovering one lifts it and pushes
    its neighbours aside. */
 .fan{position:relative;display:flex;justify-content:center;align-items:center;width:100%;
-  height:420px;margin:6px 0 4px}
+  height:420px;margin:6px 0 4px;overflow:hidden}
 .fan-card{position:absolute;width:210px;aspect-ratio:3/4;border-radius:18px;overflow:hidden;
   background:var(--surface);border:1px solid var(--border);cursor:pointer;
   box-shadow:0 18px 40px -18px rgba(0,0,0,.75);
@@ -1433,6 +1448,8 @@ function renderFilters(){
   const sep=document.createElement("div");sep.className="chip-sep";bar.appendChild(sep);
   CATS.forEach(c=> bar.appendChild(mk(t("c."+c), filterCat===c, ()=>{
     filterCat=filterCat===c?null:c;
+    savedOnly=false;                       // a category means "show me everything again"
+    document.getElementById("feedTitle").textContent=t("feed.title");
     render();renderFilters();
     if(filterCat) scrollToFeed();      // take me to the jackets, don't make me hunt
   })));
@@ -1627,6 +1644,8 @@ function renderVibes(){
     </div>`).join("");
   row.querySelectorAll(".vibe").forEach(v=> v.onclick=()=>{
     filterStyle = filterStyle===v.dataset.style ? null : v.dataset.style;
+    savedOnly=false;
+    document.getElementById("feedTitle").textContent=t("feed.title");
     renderVibes(); render(); renderFilters();
     document.getElementById("vibeClear").style.display = filterStyle ? "inline" : "none";
     if(filterStyle) scrollToFeed();
@@ -1654,8 +1673,16 @@ const FAN_POS=[
   {rot:21, scale:.7756,x:30, y:7.3,z:1}
 ];
 const FAN_MAX=7, FAN_HALF=3;
-function fanMult(){const w=innerWidth;
-  return w<480?.28:w<640?.38:w<768?.5:w<1024?.75:1;}
+/* Scale the spread to the space we actually have, so the outermost card
+   never hangs off the edge (it did at ~850px with a fixed multiplier). */
+function fanMult(stage, cardW, cardH){
+  // a card tilted 21° occupies more width than it is wide
+  const rad=21*Math.PI/180;
+  const tilted=(cardW||200)*Math.cos(rad)+(cardH||270)*Math.sin(rad);
+  const avail=(stage?stage.clientWidth:innerWidth)-tilted-16;
+  const widest=2*30*16;                    // ±30rem at 16px
+  return Math.max(.15, Math.min(1, avail/widest));
+}
 function fanSlot(total,slot){
   if(total>=FAN_MAX) return FAN_POS[slot];
   const c=total>>1, d=total>1?(slot-c)/c:0, a=Math.abs(d);
@@ -1694,7 +1721,9 @@ function mountFan(box,items,cardHTMLFn,onClick){
                          el.style.pointerEvents="";el.style.transitionDelay="";});
       return;
     }
-    const map=visible(), mult=fanMult(), count=paged?FAN_MAX:total;
+    const cardW=cards[0]?cards[0].offsetWidth:200;
+    const cardH=cards[0]?cards[0].offsetHeight:270;
+    const map=visible(), mult=fanMult(stage,cardW,cardH), count=paged?FAN_MAX:total;
     const centerSlot=count>>1;
     cards.forEach((el,i)=>{
       const slot=map.get(i);
@@ -2381,9 +2410,10 @@ document.getElementById("alertsBtn").onclick=()=>{renderAlerts();openOverlay("al
 document.getElementById("openAuth").onclick=()=>{renderAuth("signin");openOverlay("authOverlay");};
 
 /* ============ search wiring ============ */
-document.getElementById("heroSearchBtn").onclick=()=>{query=document.getElementById("heroSearch").value;render();document.getElementById("grid").scrollIntoView({behavior:"smooth"});};
+document.getElementById("heroSearchBtn").onclick=()=>{query=document.getElementById("heroSearch").value;savedOnly=false;render();document.getElementById("grid").scrollIntoView({behavior:"smooth"});};
 document.getElementById("heroSearch").addEventListener("keydown",e=>{if(e.key==="Enter"){query=e.target.value;render();document.getElementById("grid").scrollIntoView({behavior:"smooth"});}});
-document.getElementById("navSearch").addEventListener("input",e=>{query=e.target.value;render();});
+document.getElementById("navSearch").addEventListener("input",e=>{
+  query=e.target.value; savedOnly=false; render();});
 
 /* ============ lang wiring ============ */
 document.querySelectorAll(".lang button").forEach(b=> b.onclick=()=>{
