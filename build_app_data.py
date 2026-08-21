@@ -12,15 +12,78 @@ CCY_BY_COUNTRY = {"USA": "$", "UK": "£", "Australia": "A$", "Canada": "C$",
 
 from import_brands import classify
 
+# The shop's own product_type is far more reliable than guessing from a name,
+# so it wins when present. Otherwise we read the title, taking the LAST match:
+# in English the head noun comes last ("Gator shoes hooded sweatshirt" is a
+# sweatshirt, not a shoe).
+CAT_WORDS = [
+    ("Sneakers", r"sneakers?|shoes?|boots?|trainers?|loafers?|sandals?|clogs?|mules?|"
+                 r"runners?|slides?|footwear|jordan|dunk|vans|superstar|samba|gazelle|"
+                 r"air\s?force|air\s?max|new\s?balance|asics|salomon"),
+    ("Bags",     r"bags?|totes?|backpacks?|rucksack|pouch|wallets?|slings?|duffels?|"
+                 r"cases?|purse|satchel|holdall|crossbody"),
+    ("Accessories", r"caps?|hats?|beanies?|belts?|socks?|scarf|scarves|gloves?|balaclava|"
+                 r"rings?|necklaces?|chains?|bracelets?|earrings?|jewell?ery|keychains?|"
+                 r"sunglasses|eyewear|glasses|ties?|headband|bandana|lanyard|watch|"
+                 r"accessor|wristband|gaiter|mittens?"),
+    ("Jackets",  r"jackets?|coats?|parkas?|vests?|gilets?|overshirts?|blazers?|puffers?|"
+                 r"anoraks?|bombers?|windbreaker|shell|trench|outerwear|raincoat"),
+    ("Knitwear", r"hoodies?|hoody|knits?|knitwear|sweaters?|jumpers?|cardigans?|crewnecks?|"
+                 r"fleece|sweatshirts?|pullovers?|zip[\s-]?up|turtleneck|mohair"),
+    ("Denim",    r"jeans?|denim|pants?|trousers?|shorts?|cargos?|joggers?|sweatpants?|"
+                 r"slacks?|chinos?|bottoms?|tracksuits?|leggings|jorts|skirt"),
+    ("Tees",     r"tees?|t[\s-]?shirts?|shirts?|polos?|jerseys?|tanks?|tops?|"
+                 r"longsleeves?|long\s?sleeve|beaters?|blouse|singlet"),
+    ("Art",      r"prints?|posters?|artwork|canvas|stickers?|zines?|books?|magazines?|"
+                 r"rugs?|candles?|mugs?|cushions?|vases?|incense|ashtrays?|towels?|"
+                 r"blankets?|figures?|toys?|puzzles?|ceramics?"),
+]
+CAT_RE = [(c, __import__("re").compile(rx, __import__("re").I)) for c, rx in CAT_WORDS]
+
+TYPE_MAP = {
+    "shoes": "Sneakers", "footwear": "Sneakers", "sneakers": "Sneakers", "boots": "Sneakers",
+    "bags": "Bags", "bag": "Bags", "accessories": "Accessories", "hats": "Accessories",
+    "headwear": "Accessories", "jewelry": "Accessories", "jewellery": "Accessories",
+    "eyewear": "Accessories", "outerwear": "Jackets", "jackets": "Jackets", "coats": "Jackets",
+    "knitwear": "Knitwear", "hoodies": "Knitwear", "sweatshirts": "Knitwear",
+    "sweaters": "Knitwear", "pants": "Denim", "trousers": "Denim", "shorts": "Denim",
+    "bottoms": "Denim", "denim": "Denim", "jeans": "Denim",
+    "t-shirts": "Tees", "t-shirt": "Tees", "tshirts": "Tees", "tees": "Tees",
+    "shirts": "Tees", "tops": "Tees", "polos": "Tees",
+    "home": "Art", "prints": "Art", "objects": "Art",
+}
+
+def cat_from_text(text):
+    """Last keyword wins — the head noun sits at the end."""
+    best, pos = None, -1
+    for cat, rx in CAT_RE:
+        for m in rx.finditer(text or ""):
+            if m.start() > pos:
+                best, pos = cat, m.start()
+    return best
+
+def cat_of(p, brand_kind="clothing"):
+    ptype = (p.get("type") or "").strip().lower()
+    if ptype in TYPE_MAP:
+        cat = TYPE_MAP[ptype]
+    else:
+        cat = cat_from_text(f"{ptype} {p.get('title','')}") or cat_from_text(p.get("tags", ""))
+    if not cat:
+        # nothing said what it is — do not dump it in Tees, say so honestly
+        cat = "Other"
+    p["kind"] = {"Sneakers": "footwear", "Bags": "bags",
+                 "Art": "art-decor"}.get(cat, "clothing")
+    return cat
+
 # The generic HTML scraper sometimes grabs banners and template debris
 # ("?goods status id=2", "ALL ITEMS SALE 30%OFF"). Better to show nothing
 # for a brand than to show junk.
 JUNK_PATTERNS = [
-    r"^\?", r"status\s*id", r"goods\s*status", r"=\d", r"\bundefined\b", r"\bnull\b",
-    r"^\W*$", r"^(shop|store|home|index|menu|cart|search|login|account|all)\b",
-    r"\b(sale|off|discount|free shipping|new arrivals?|coming soon|lookbook|newsletter)\b",
+    r"^\?", r"status\s*id", r"goods\s*status", r"=\d", r"undefined", r"null",
+    r"^\W*$", r"^(shop|store|home|index|menu|cart|search|login|account|all)",
+    r"(sale|off|discount|free shipping|new arrivals?|coming soon|lookbook|newsletter)",
     r"^\d+%", r"%\s*off", r"\.(jpg|png|webp|html?)$", r"^https?:",
-    r"^(all items?|view all|see all|shop all|collection)\b",
+    r"^(all items?|view all|see all|shop all|collection)",
 ]
 JUNK_RE = re.compile("|".join(JUNK_PATTERNS), re.I)
 
@@ -31,25 +94,12 @@ def looks_like_product(title: str) -> bool:
     if JUNK_RE.search(t):
         return False
     letters = sum(ch.isalpha() for ch in t)
-    if letters < 3 or letters / len(t) < 0.45:      # mostly symbols/numbers
+    if letters < 3 or letters / len(t) < 0.45:
         return False
-    if len(t.split()) > 12:                          # a sentence, not a product
+    if len(t.split()) > 12:
         return False
     return True
 
-def cat_of(p, brand_kind="clothing"):
-    s = f"{p['title']} {p.get('type','')} {p.get('tags','')}".lower()
-    # products scraped from non-Shopify sites arrive unclassified
-    if "kind" not in p:
-        p["kind"] = classify(s, fallback=brand_kind)
-    if p["kind"] == "art-decor": return "Art"
-    if p["kind"] == "footwear":  return "Sneakers"
-    if p["kind"] == "bags":      return "Bags"
-    if re.search(r"jacket|coat|parka|vest|gilet|overshirt|blazer", s): return "Jackets"
-    if re.search(r"hoodie|knit|sweater|jumper|cardigan|crewneck|fleece", s): return "Knitwear"
-    if re.search(r"jean|denim|pant|trouser|short|cargo|sweatpant|jogger", s): return "Denim"
-    if re.search(r"cap|hat|beanie|belt|sock|scarf|glove|balaclava|jewel|ring|necklace", s): return "Accessories"
-    return "Tees"
 
 def price_of(p, country):
     v = p.get("price")

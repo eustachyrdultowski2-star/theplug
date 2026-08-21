@@ -329,6 +329,21 @@ main{padding:34px 0 90px}
 @media(hover:none){.save-btn{opacity:1;transform:none}}
 #openAuth.signed{border-color:var(--accent);color:var(--accent)}
 
+
+/* admin */
+.admin{padding:26px 0 60px}
+.admin h1{font-size:clamp(28px,5vw,46px);margin:6px 0 22px}
+.a-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.a-tile{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 18px;
+  display:flex;flex-direction:column;gap:3px}
+.a-label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--faint)}
+.a-value{font-family:Anton,sans-serif;font-size:34px;line-height:1;color:var(--accent)}
+.a-sub{font-size:11.5px;color:var(--muted)}
+.a-list{display:grid;gap:6px;max-width:640px}
+.a-row{display:flex;justify-content:space-between;gap:14px;padding:10px 13px;border-radius:10px;
+  background:var(--surface);border:1px solid var(--border);font-size:13.5px}
+.a-dim{color:var(--faint);white-space:nowrap}
+
 /* ---------- routed pages ---------- */
 .brand-page,.item-page{padding:26px 0 40px}
 .brand-back{display:inline-block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:20px;text-decoration:none}
@@ -879,6 +894,7 @@ main{padding:34px 0 90px}
 <!-- routed pages -->
 <div id="brandPage" style="display:none"></div>
 <div id="itemPage" style="display:none"></div>
+<div id="adminPage" style="display:none"></div>
 
 <section class="hero" id="heroSection">
   <div class="hero-blob"></div>
@@ -2828,7 +2844,7 @@ window.addEventListener("popstate",route);
 
 function showOnly(ids){
   const all=["heroSection","tiltSection","vibesSection","featuredSection","feedSection",
-             "community","faq","brandPage","itemPage"];
+             "community","faq","brandPage","itemPage","adminPage"];
   all.forEach(id=>{const el=document.getElementById(id); if(el) el.style.display=ids.includes(id)?"":"none";});
 }
 
@@ -2844,10 +2860,67 @@ function route(){
     window.scrollTo(0,0); return;
   }
   if(p==="/faq"){ showOnly(["faq"]); window.scrollTo(0,0); return; }
+  if(p==="/admin"){ renderAdmin(); return; }
   // landing
   showOnly(["heroSection","tiltSection","vibesSection","featuredSection","feedSection","community","faq"]);
   feedOpen=false; feedShown=PAGE; render();
   document.getElementById("feedTitle").textContent=t("feed.title");
+}
+
+async function renderAdmin(){
+  showOnly(["adminPage"]); window.scrollTo(0,0);
+  const box=document.getElementById("adminPage");
+  const key=new URLSearchParams(location.search).get("key")||localStorage.getItem("plug.adminkey")||"";
+  if(!key){
+    box.innerHTML=`<div class="wrap admin"><h1 class="anton">Admin</h1>
+      <p class="spot-hint">Add your key: <code>/admin?key=…</code></p></div>`;
+    return;
+  }
+  localStorage.setItem("plug.adminkey",key);
+  box.innerHTML=`<div class="wrap admin"><h1 class="anton">Admin</h1><p class="spot-hint">loading…</p></div>`;
+  let d;
+  try{ const r=await fetch("/api/admin/stats?key="+encodeURIComponent(key));
+       d=await r.json();
+       if(!r.ok) throw new Error(d.error||"failed"); }
+  catch(e){
+    box.innerHTML=`<div class="wrap admin"><h1 class="anton">Admin</h1>
+      <p class="spot-hint">${esc(String(e.message))} — check the key, or set ADMIN_KEY on the server.</p></div>`;
+    return;
+  }
+  const tile=(label,value,sub)=>`<div class="a-tile"><span class="a-label">${label}</span>
+    <span class="a-value">${value}</span>${sub?`<span class="a-sub">${sub}</span>`:""}</div>`;
+  const when=ts=>ts?new Date(ts*1000).toLocaleDateString():"";
+  box.innerHTML=`<div class="wrap admin">
+    <a href="/" data-route class="brand-back">← back to the site</a>
+    <h1 class="anton">Admin</h1>
+    <div class="a-grid">
+      ${tile("Accounts", d.users.total, `+${d.users.last7} this week · +${d.users.last30} this month`)}
+      ${tile("Plug+", d.users.plus, "paying")}
+      ${tile("Saved pieces", d.saved.pieces, `${d.saved.people} people saving`)}
+      ${tile("Watching", d.watches, "restock / price alerts")}
+      ${tile("Alerts fired", d.alerts, "")}
+      ${tile("Drop subscribers", d.subscribers, "weekly email")}
+    </div>
+
+    <div class="section-head" style="margin-top:34px"><h2>Newest accounts</h2></div>
+    <div class="a-list">${(d.recent||[]).map(u=>`<div class="a-row">
+        <span>${esc(u.email)}</span><span class="a-dim">${when(u.created)}</span></div>`).join("")
+        || `<p class="spot-hint">No accounts yet.</p>`}</div>
+
+    <div class="section-head" style="margin-top:28px"><h2>Most saved</h2></div>
+    <div class="a-list">${(d.saved.top||[]).map(t=>{
+        const it=everything().find(i=>String(i.id)===String(t.id));
+        return `<div class="a-row"><span>${it?esc(it.brand+" — "+it.name):"#"+t.id}</span>
+                <span class="a-dim">${t.n}×</span></div>`;}).join("")
+        || `<p class="spot-hint">Nothing saved yet.</p>`}</div>
+
+    <div class="section-head" style="margin-top:28px"><h2>Top spotters</h2></div>
+    <div class="a-list">${(d.spotters||[]).map((r,i)=>`<div class="a-row">
+        <span>${i+1}. ${esc(r.user)}</span><span class="a-dim">${r.points} pts · ${r.ids||0} IDs</span>
+      </div>`).join("")}</div>
+
+    <p class="spot-hint" style="margin-top:26px">Traffic numbers live in your analytics provider, not here.</p>
+  </div>`;
 }
 
 function renderBrandPage(sl){

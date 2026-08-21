@@ -5,11 +5,47 @@ import http.server, socketserver, json, os
 import time
 import brand_detect
 import image_search
+import hmac, time as _t
 import store
 import auth
 
 PORT = int(os.environ.get("PORT", 4190))   # hosts assign the port
 DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def admin_stats():
+    """Everything the owner might want to know, read straight off the store."""
+    users   = store.load("users", [])
+    saved   = store.load("saved", {})
+    watches = store.load("watches", [])
+    alerts  = store.load("alerts", [])
+    subs    = store.load("subscribers", [])
+    board   = store.load("leaderboard", [])
+    now     = _t.time()
+
+    def since(days):
+        return sum(1 for u in users if u.get("created", 0) > now - days * 86400)
+
+    # which pieces get saved the most
+    counts = {}
+    for ids in saved.values():
+        for i in ids:
+            counts[i] = counts.get(i, 0) + 1
+    top = sorted(counts.items(), key=lambda kv: -kv[1])[:10]
+
+    return {
+        "users":       {"total": len(users), "last7": since(7), "last30": since(30),
+                        "plus": sum(1 for u in users if u.get("plus"))},
+        "saved":       {"people": len([k for k, v in saved.items() if v]),
+                        "pieces": sum(len(v) for v in saved.values()),
+                        "top": [{"id": i, "n": n} for i, n in top]},
+        "watches":     len(watches),
+        "alerts":      len(alerts),
+        "subscribers": len(subs),
+        "spotters":    sorted(board, key=lambda r: -r.get("points", 0))[:10],
+        "recent":      [{"email": u["email"], "created": u.get("created")}
+                        for u in sorted(users, key=lambda u: -u.get("created", 0))[:10]],
+    }
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -40,6 +76,18 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         if self.path.startswith("/api/"):
             name = self.path.split("?")[0]
+            if name.startswith("/api/admin/stats"):
+                key = os.environ.get("ADMIN_KEY")
+                if not key:
+                    return self._json(404, {"error": "admin_disabled"})
+                given = ""
+                if "?" in self.path:
+                    from urllib.parse import parse_qs
+                    given = (parse_qs(self.path.split("?", 1)[1]).get("key") or [""])[0]
+                if not hmac.compare_digest(given, key):
+                    return self._json(401, {"error": "bad_key"})
+                return self._json(200, admin_stats())
+
             if name == "/api/me":
                 me = self._me()
                 return self._json(200, {"user": me,
