@@ -1,0 +1,2789 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="description" content="Find the clothes you spot in TikToks and reels. 548 brands, 2100+ pieces, one search." />
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" content="#0a0b0d" media="(prefers-color-scheme: dark)" />
+<meta name="theme-color" content="#fbfbfc" media="(prefers-color-scheme: light)" />
+<link rel="icon" href="/assets/icons/icon-192.png" />
+<link rel="apple-touch-icon" href="/assets/icons/icon-180.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="The Plug" />
+<meta property="og:title" content="The Plug — find the fit" />
+<meta property="og:description" content="Paste a TikTok, get every brand in the fit." />
+<meta property="og:type" content="website" />
+<title>The Plug — find the fit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Epilogue:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* surfaces come from the mode (dark by default), accent from the palette */
+  --bg:#0a0b0d; --surface:#141519; --surface-2:#1c1e24; --border:#282b33;
+  --fg:#f4f5f7; --muted:#a1a4ad; --faint:#71747d;
+  --accent:#2f6bff;           /* sapphire */
+  --accent-2:#7cc0ff;         /* sky */
+  --on-accent:#ffffff;
+  --indie:#ff3d81; --big:#63b3ff;
+  --radius:16px; --radius-sm:10px;
+  --maxw:1240px;
+  --ease:cubic-bezier(.22,.61,.36,1);
+}
+/* light mode: only the surfaces flip, the accent stays the brand */
+:root[data-mode="light"]{
+  --bg:#fbfbfc; --surface:#ffffff; --surface-2:#f2f3f6; --border:#e3e5ea;
+  --fg:#0e1014; --muted:#585c66; --faint:#8b8f99;
+}
+:root[data-mode="light"] .dock{background:rgba(255,255,255,.78);border-color:rgba(0,0,0,.08);
+  box-shadow:0 8px 32px rgba(20,25,40,.14),inset 0 1px 0 rgba(255,255,255,.9)}
+:root[data-mode="light"] .dock-glyph{background:linear-gradient(160deg,#fff,#eef0f5);color:#15171c;
+  border-color:rgba(0,0,0,.08);box-shadow:0 2px 6px rgba(20,25,40,.12)}
+:root[data-mode="light"] .dock-tip{background:rgba(20,22,28,.94)}
+:root[data-mode="light"] .flux-track,
+:root[data-mode="light"] .bc-top{box-shadow:inset 0 2px 3px rgba(0,0,0,.08)}
+:root[data-mode="light"] .bg-grain{opacity:.03;mix-blend-mode:multiply}
+:root[data-mode="light"] .btn-ghost,
+:root[data-mode="light"] .glass-field{background:rgba(255,255,255,.7)}
+html,body{transition:background-color .45s var(--ease),color .45s var(--ease)}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--bg);color:var(--fg);
+  font-family:Epilogue,system-ui,sans-serif;line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ---------- backdrop: "darkroom contact sheet" ----------
+   Four fixed, non-interactive layers. Deliberately not the usual
+   mesh-gradient blobs: a photographic grain, an archive grid, one
+   soft overhead wash, and a vignette that keeps the edges quiet.
+   All fixed + pointer-events:none so scrolling never repaints them. */
+.bg-layer{position:fixed;inset:0;pointer-events:none;z-index:-1}
+
+/* 1. overhead wash — a single light source, tinted by the active accent */
+.bg-wash{
+  background:
+    radial-gradient(120% 80% at 50% -18%, color-mix(in srgb, var(--accent) 30%, transparent), transparent 58%),
+    radial-gradient(75% 55% at 88% 6%, color-mix(in srgb, var(--accent-2) 24%, transparent), transparent 55%),
+    radial-gradient(70% 50% at 6% 30%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 60%);
+}
+:root[data-mode="light"] .bg-wash{opacity:.55}
+/* 2. archive grid — hairlines, faded out toward the edges */
+.bg-grid{
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--fg) 6%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--fg) 6%, transparent) 1px, transparent 1px);
+  background-size:96px 96px;
+  -webkit-mask-image:radial-gradient(100% 65% at 50% 0%, #000 20%, transparent 85%);
+  mask-image:radial-gradient(100% 65% at 50% 0%, #000 20%, transparent 85%);
+  opacity:.7;
+}
+/* 3. film grain — SVG turbulence, the texture that stops flat-black looking cheap */
+.bg-grain{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.42'/%3E%3C/svg%3E");
+  opacity:.055;mix-blend-mode:overlay;
+}
+/* 4. vignette — pulls attention back to the middle of the grid */
+.bg-vignette{
+  background:radial-gradient(130% 100% at 50% 35%, transparent 55%, color-mix(in srgb, var(--bg) 92%, #000) 100%);
+}
+/* one slow drift, purely to keep the light from feeling printed on */
+@media (prefers-reduced-motion: no-preference){
+  .bg-wash{animation:washDrift 42s ease-in-out infinite alternate}
+}
+@keyframes washDrift{to{transform:translate3d(0,-2.5%,0) scale(1.06)}}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+img{display:block;max-width:100%}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 20px}
+.anton{font-family:Anton,sans-serif;font-weight:400;text-transform:uppercase;letter-spacing:.5px;line-height:.95}
+
+/* ---------- top nav ---------- */
+header.nav{position:sticky;top:0;z-index:50;background:rgba(11,11,13,.82);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.nav-inner{display:flex;align-items:center;gap:18px;height:64px}
+.logo{font-family:Anton,sans-serif;font-size:26px;letter-spacing:1px;text-transform:uppercase}
+.logo b{color:var(--accent)}
+.logo .the{font-family:Epilogue,sans-serif;font-weight:800;font-size:.42em;letter-spacing:2px;color:var(--muted);vertical-align:middle;margin-right:5px}
+.nav-search{flex:1;max-width:440px;display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:9px 16px;transition:border-color .2s}
+.nav-search:focus-within{border-color:var(--accent)}
+.nav-search input{flex:1;background:none;border:none;outline:none;color:var(--fg);font-size:14px}
+.nav-search svg{flex:none;color:var(--faint)}
+.nav-spacer{flex:1}
+.nav-actions{display:flex;align-items:center;gap:10px}
+.lang{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:999px;overflow:hidden}
+.lang button{padding:7px 12px;font-size:12px;font-weight:700;color:var(--muted)}
+.lang button.on{background:var(--accent);color:var(--on-accent)}
+.btn{border-radius:999px;font-weight:700;font-size:14px;padding:10px 18px;transition:transform .15s var(--ease),background .2s}
+.btn:active{transform:scale(.96)}
+/* glassy tint instead of a flat block of accent colour */
+.btn-primary{background:color-mix(in srgb, var(--accent) 82%, transparent);color:var(--on-accent);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35), inset 0 -2px 4px rgba(0,0,0,.12), 0 4px 12px -4px rgba(0,0,0,.5)}
+.btn-primary:hover{background:var(--accent)}
+.btn-ghost{border:1px solid var(--border);background:color-mix(in srgb, var(--surface) 70%, transparent);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.btn-ghost:hover{border-color:var(--faint)}
+.btn-plus{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--accent);color:var(--accent);
+  background:rgba(255,255,255,.04);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.btn-plus:hover{background:rgba(214,255,63,.1)}
+.btn-plus svg{color:var(--accent)}
+
+/* plus / paywall screen */
+.plus-wrap{padding:30px}
+.plus-badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:800;letter-spacing:1.5px;color:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:5px 12px;margin-bottom:14px}
+.plus-wrap h3{font-family:Anton,sans-serif;font-size:34px;text-transform:uppercase;line-height:1;margin:0 0 10px}
+.plus-wrap p.psub{color:var(--muted);font-size:14px;margin:0 0 22px;max-width:460px}
+.plus-feats{list-style:none;padding:0;margin:0 0 24px;display:grid;gap:11px}
+.plus-feats li{display:flex;align-items:flex-start;gap:10px;font-size:14.5px}
+.plus-feats .ck{flex:none;width:20px;height:20px;border-radius:50%;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;margin-top:1px}
+/* billing-frequency tabs (sliding pill, ported from the React component) */
+.freq{position:relative;display:flex;width:fit-content;margin:0 auto 18px;background:var(--surface-2);border:1px solid var(--border);border-radius:999px;padding:4px}
+.freq-pill{position:absolute;top:4px;bottom:4px;border-radius:999px;background:var(--fg);
+  box-shadow:0 2px 6px rgba(0,0,0,.35);transition:left .38s cubic-bezier(.34,1.4,.5,1),width .38s cubic-bezier(.34,1.4,.5,1);z-index:0}
+.freq button{position:relative;z-index:1;display:flex;align-items:center;gap:8px;padding:8px 16px;border-radius:999px;
+  font-size:13.5px;font-weight:700;text-transform:capitalize;color:var(--muted);transition:color .25s}
+.freq button.on{color:var(--bg)}
+.freq .save{font-size:10.5px;font-weight:800;letter-spacing:.3px;padding:3px 8px;border-radius:999px;
+  background:var(--accent-2);color:#fff;white-space:nowrap}
+.freq button.on .save{background:rgba(0,0,0,.16);color:var(--bg)}
+.price-old{font-size:13px;color:var(--faint);text-decoration:line-through;margin-bottom:2px;height:16px}
+.plans{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.plan{position:relative;border:1px solid var(--border);border-radius:16px;padding:20px 18px;background:var(--surface-2);transition:border-color .2s,transform .15s}
+.plan:hover{border-color:var(--faint)}
+.plan.best{border-color:var(--accent);background:linear-gradient(180deg,rgba(214,255,63,.07),transparent)}
+.plan .pname{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.plan .pprice{font-family:Anton,sans-serif;font-size:38px;line-height:1;margin:8px 0 2px}
+.plan .pper{font-size:12px;color:var(--faint);margin-bottom:14px}
+.plan .pnote{font-size:11.5px;color:var(--accent-2);font-weight:600;margin-bottom:12px}
+.plan .btn{width:100%;text-align:center;padding:12px}
+.plan-badge{position:absolute;top:-9px;right:14px;font-size:10px;font-weight:800;letter-spacing:.6px;background:var(--accent);color:var(--on-accent);padding:3px 9px;border-radius:999px}
+.plus-free{font-size:13px;color:var(--muted);text-align:center;padding:12px;background:var(--surface-2);border-radius:12px;margin-bottom:8px}
+.plus-disc{font-size:11px;color:var(--faint);text-align:center}
+@media(max-width:560px){.plans{grid-template-columns:1fr}.plus-wrap h3{font-size:28px}}
+.icon-only{width:42px;height:42px;display:grid;place-items:center;border-radius:999px;border:1px solid var(--border);background:var(--surface)}
+@media(max-width:820px){.nav-search{display:none}}
+
+/* ---------- hero ---------- */
+.hero{position:relative;overflow:hidden;border-bottom:1px solid var(--border)}
+.hero-inner{padding:64px 0 52px;position:relative;z-index:2}
+.hero h1{font-size:clamp(44px,8vw,104px);margin:0 0 10px}
+.hero h1 .hl{background:linear-gradient(100deg,var(--accent),var(--accent-2) 60%,var(--accent));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 24px color-mix(in srgb,var(--accent) 40%,transparent))}
+.card:hover{border-color:color-mix(in srgb,var(--accent) 55%,var(--border));
+  box-shadow:0 10px 30px -12px color-mix(in srgb,var(--accent) 45%,transparent)}
+.stat b{background:linear-gradient(120deg,var(--fg),var(--accent-2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p.sub{font-size:clamp(16px,2.2vw,21px);color:var(--muted);max-width:560px;margin:0 0 30px}
+.hero-search{display:flex;gap:10px;max-width:620px;margin-bottom:20px}
+.hero-search .field{flex:1;display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:15px 18px;transition:border-color .2s}
+.hero-search .field:focus-within{border-color:transparent}
+
+/* ---------- border beam (ported from the React component) ----------
+   A conic gradient rotates behind the field and is masked down to the
+   1.5px border ring, so a coloured beam travels around the edge. */
+@property --beam{syntax:"<angle>";inherits:false;initial-value:0deg}
+.beam{position:relative;isolation:isolate}
+.beam::after{
+  content:"";position:absolute;inset:0;border-radius:inherit;padding:1.5px;z-index:2;pointer-events:none;
+  background:conic-gradient(from var(--beam),
+      transparent 0%, transparent 62%,
+      #5b8cff 72%, #a86bff 80%, #ff3d81 87%, #ffd166 93%, transparent 100%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
+  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude;
+  animation:beamSpin 3.1s linear infinite}
+@keyframes beamSpin{to{--beam:360deg}}
+/* the beam is the focus indicator here, so make it brighter when focused */
+.beam:focus-within::after{animation-duration:1.9s;filter:saturate(1.3) brightness(1.15)}
+@media (prefers-reduced-motion:reduce){
+  .beam::after{animation:none;background:linear-gradient(90deg,#5b8cff,#ff3d81)}
+}
+.hero-search input{flex:1;background:none;border:none;outline:none;color:var(--fg);font-size:16px}
+.hero-search .btn{padding:0 26px;white-space:nowrap}
+.trending{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.trending .lbl{font-size:13px;color:var(--faint);margin-right:2px}
+.tag{font-size:13px;font-weight:600;padding:6px 13px;border-radius:999px;background:var(--surface-2);border:1px solid var(--border);color:var(--muted);transition:.15s}
+.tag:hover{color:var(--fg);border-color:var(--accent);cursor:pointer}
+/* the hero sits on the page backdrop now; no extra blobs */
+.hero{background:transparent}
+.hero-blob{display:none}
+.stats{display:flex;gap:28px;margin-top:34px;flex-wrap:wrap}
+.stat b{font-family:Anton,sans-serif;font-size:30px;display:block;line-height:1}
+.stat span{font-size:13px;color:var(--faint)}
+
+/* ---------- filter bar ---------- */
+.toolbar{position:sticky;top:64px;z-index:40;background:rgba(11,11,13,.9);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+.toolbar-inner{display:flex;align-items:center;gap:10px;padding:14px 0;overflow-x:auto;scrollbar-width:none}
+.toolbar-inner::-webkit-scrollbar{display:none}
+.chip{white-space:nowrap;font-size:13px;font-weight:600;padding:8px 15px;border-radius:999px;background:var(--surface);border:1px solid var(--border);color:var(--muted);transition:.15s}
+.chip:hover{color:var(--fg)}
+.chip.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.chip.indie.on{background:var(--indie);border-color:var(--indie);color:#fff}
+.chip-sep{width:1px;height:22px;background:var(--border);flex:none}
+
+/* ---------- feed grid ---------- */
+main{padding:34px 0 90px}
+.section-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:6px 0 20px}
+.section-head h2{font-family:Anton,sans-serif;font-size:26px;text-transform:uppercase;margin:0}
+.section-head .count{font-size:13px;color:var(--faint)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:18px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:transform .2s var(--ease),border-color .2s}
+.card:hover{transform:translateY(-4px);border-color:var(--faint)}
+.brand-card{display:flex;flex-direction:column;text-decoration:none}
+.bc-top{aspect-ratio:16/9;display:flex;align-items:center;justify-content:space-between;padding:12px;
+  background:linear-gradient(135deg,var(--surface-2),var(--surface))}
+.bc-mark{font-family:Anton,sans-serif;font-size:30px;letter-spacing:1px;color:var(--fg);opacity:.9}
+.bc-niche{font-size:11.5px;color:var(--muted);margin-bottom:8px;min-height:15px}
+.bc-go{font-size:11px;color:var(--accent);font-weight:600}
+.card .ph{position:relative;aspect-ratio:3/4;overflow:hidden;background:var(--surface-2)}
+.card .ph img{width:100%;height:100%;object-fit:cover;transition:transform .4s var(--ease)}
+.card:hover .ph img{transform:scale(1.05)}
+.badge{position:absolute;top:10px;left:10px;font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;padding:4px 9px;border-radius:999px;backdrop-filter:blur(4px)}
+.badge.indie{background:rgba(255,61,129,.92);color:#fff}
+.badge.big{background:rgba(99,179,255,.92);color:#04121f}
+.badge.pending{background:rgba(214,255,63,.94);color:var(--on-accent)}
+.badge.featured{background:var(--accent);color:var(--on-accent);display:flex;align-items:center;gap:4px}
+.src-badge{position:absolute;bottom:10px;left:10px;display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:4px 9px;border-radius:999px;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);color:#fff}
+.card .body{padding:13px 14px 15px}
+.card .brand{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.card .name{font-size:15px;font-weight:600;margin:2px 0 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card .row{display:flex;align-items:center;justify-content:space-between}
+.card .price{font-family:Anton,sans-serif;font-size:19px}
+.card .price.na{color:var(--faint);font-size:13px;font-family:Epilogue;font-weight:600}
+.likes{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--faint)}
+
+
+/* ---------- alerts / leaderboard / weekly drop ---------- */
+#alertsBtn{position:relative}
+.bell-dot{position:absolute;top:7px;right:8px;width:8px;height:8px;border-radius:50%;
+  background:var(--accent-2);box-shadow:0 0 0 2px var(--surface)}
+.alerts-list{padding:26px 26px 30px;display:grid;gap:9px}
+.alerts-list h3{font-family:Anton,sans-serif;font-size:26px;text-transform:uppercase;margin:0 0 4px}
+.alert-row{display:flex;align-items:center;gap:11px;background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:9px 11px;text-decoration:none}
+.alert-row:hover{border-color:color-mix(in srgb,var(--accent) 50%,var(--border))}
+.alert-row img{width:44px;height:44px;object-fit:cover;border-radius:9px;flex:none;background:var(--surface-2)}
+.alert-main{flex:1;min-width:0}
+.alert-kind{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--accent)}
+.alert-name{font-size:13px;color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.alert-price{font-family:Anton,sans-serif;font-size:15px;color:var(--fg)}
+.alert-price s{font-family:Epilogue;font-size:11px;color:var(--faint);margin-right:5px}
+.watch-btn{display:inline-flex;align-items:center;gap:7px}
+.watch-btn.on{background:color-mix(in srgb,var(--accent) 22%,transparent);border-color:var(--accent);color:var(--accent)}
+
+.board-wrap{padding:60px 0 10px}
+.board{display:grid;gap:7px;max-width:640px}
+.board-row{display:flex;align-items:center;gap:13px;padding:11px 14px;border-radius:12px;
+  background:var(--surface);border:1px solid var(--border)}
+.board-row.me{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--surface))}
+.board-rank{font-family:Anton,sans-serif;font-size:17px;width:30px;color:var(--faint)}
+.board-row:nth-child(1) .board-rank{color:#ffd60a}
+.board-row:nth-child(2) .board-rank{color:#c9ccd4}
+.board-row:nth-child(3) .board-rank{color:#e08b4a}
+.board-user{flex:1;font-size:14px;font-weight:600}
+.board-ids{font-size:11.5px;color:var(--faint)}
+.board-pts{font-family:Anton,sans-serif;font-size:18px;color:var(--accent)}
+
+.drop-wrap{padding:60px 0 10px}
+.drop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:20px}
+.drop-card{display:block;text-decoration:none;background:var(--surface);border:1px solid var(--border);
+  border-radius:14px;padding:14px;transition:border-color .2s,transform .2s var(--ease)}
+.drop-card:hover{border-color:color-mix(in srgb,var(--accent) 55%,var(--border));transform:translateY(-3px)}
+.drop-num{font-family:Anton,sans-serif;font-size:13px;color:var(--accent)}
+.drop-name{font-size:15px;font-weight:700;color:var(--fg);margin:4px 0 3px;line-height:1.2}
+.drop-niche{font-size:11.5px;color:var(--muted)}
+.drop-form{display:flex;gap:9px;max-width:460px}
+.drop-form input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:12px;
+  padding:12px 14px;color:var(--fg);font-family:inherit;font-size:14px;outline:none}
+.drop-form input:focus{border-color:var(--accent)}
+.drop-msg{font-size:13px;color:var(--accent);margin-top:10px;min-height:18px}
+@media(max-width:560px){.drop-form{flex-direction:column}}
+
+/* ---------- routed pages ---------- */
+.brand-page,.item-page{padding:26px 0 40px}
+.brand-back{display:inline-block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:20px;text-decoration:none}
+.brand-back:hover{color:var(--accent)}
+.brand-hero{display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:34px}
+.bc-mark.big{width:82px;height:82px;flex:none;border-radius:20px;display:grid;place-items:center;font-size:30px;
+  background:linear-gradient(150deg,var(--surface-2),var(--surface));border:1px solid var(--border)}
+.brand-hero h1{font-size:clamp(28px,5vw,52px);margin:0;line-height:1}
+.brand-meta{color:var(--muted);font-size:14px;margin:6px 0 0}
+.brand-actions{display:flex;gap:9px;margin-top:14px;flex-wrap:wrap}
+.brand-actions .btn{padding:10px 18px}
+.item-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:34px;align-items:start}
+.item-photo{border-radius:18px;overflow:hidden;border:1px solid var(--border);background:var(--surface-2)}
+.item-photo img{width:100%;display:block}
+.item-page h1{font-size:clamp(24px,4vw,40px);margin:4px 0 0;line-height:1.05}
+@media(max-width:760px){.item-layout{grid-template-columns:1fr}}
+
+.feed-more{display:flex;flex-direction:column;align-items:center;gap:8px;padding:26px 0 4px}
+.feed-more:empty{display:none}
+.feed-count{font-size:12px;color:var(--faint);font-variant-numeric:tabular-nums}
+
+/* ---------- fan carousel (ported from card-fan-carousel) ----------
+   Cards spread like a hand of cards; hovering one lifts it and pushes
+   its neighbours aside. */
+.fan{position:relative;display:flex;justify-content:center;align-items:center;width:100%;
+  height:420px;margin:6px 0 4px}
+.fan-card{position:absolute;width:210px;aspect-ratio:3/4;border-radius:18px;overflow:hidden;
+  background:var(--surface);border:1px solid var(--border);cursor:pointer;
+  box-shadow:0 18px 40px -18px rgba(0,0,0,.75);
+  transform-origin:bottom center;will-change:transform;
+  transition:transform .55s cubic-bezier(.22,1,.36,1), box-shadow .3s, border-color .3s}
+.fan-card:hover{border-color:color-mix(in srgb,var(--accent) 55%,var(--border));
+  box-shadow:0 26px 50px -18px color-mix(in srgb,var(--accent) 45%,rgba(0,0,0,.8))}
+.fan-card img{width:100%;height:62%;object-fit:cover;display:block}
+.fan-body{padding:10px 12px}
+.fan-cat{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--faint)}
+.fan-note{font-size:13px;font-weight:600;color:var(--fg);margin:2px 0 8px;line-height:1.3;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.fan-foot{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.fan-look{font-size:11px;color:var(--faint)}
+.fan-btn{font-size:11px;font-weight:700;padding:6px 11px;border-radius:999px;
+  background:var(--accent);color:var(--on-accent)}
+.fan-nav{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:6px}
+.fan-arrow{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;
+  border:1.5px solid color-mix(in srgb,var(--fg) 12%,transparent);
+  background:color-mix(in srgb,var(--fg) 6%,transparent);backdrop-filter:blur(16px);
+  color:var(--muted);transition:.25s}
+.fan-arrow:hover{border-color:color-mix(in srgb,var(--fg) 26%,transparent);color:var(--fg)}
+.fan-dots{display:flex;gap:7px}
+.fan-dots span{width:7px;height:7px;border-radius:50%;background:color-mix(in srgb,var(--fg) 16%,transparent);
+  transition:.3s}
+.fan-dots span.on{background:var(--accent);transform:scale(1.35)}
+@media(max-width:900px){.fan{height:360px}.fan-card{width:170px}}
+@media(max-width:560px){.fan{height:320px}.fan-card{width:150px}}
+@media (prefers-reduced-motion:reduce){.fan-card{transition:none}}
+
+/* community ID form + reward */
+.id-form{display:flex;gap:6px;width:100%}
+.id-form input{flex:1;min-width:0;background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:8px 10px;color:var(--fg);font-family:inherit;font-size:12px;outline:none}
+.id-form input:focus{border-color:var(--accent)}
+.id-form .btn{padding:8px 12px;font-size:12px}
+.id-thanks{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--accent);width:100%}
+.vote-hint{font-size:11.5px;color:var(--muted);background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;padding:5px 8px;margin-top:8px}
+.vote-hint b{color:var(--fg)}
+.id-thanks.pendingv{color:var(--muted)}
+.id-thanks.pendingv b{color:var(--fg)}
+.id-thanks.capped{color:var(--faint)}
+.id-thanks.capped b{color:var(--muted)}
+.id-thanks b{color:var(--fg)}
+.id-thanks svg{flex:none}
+.reward-hint{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--accent);background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:999px;padding:6px 12px;margin-bottom:18px}
+
+/* vibe / style tiles */
+.vibe-row{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(150px,1fr);gap:12px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.vibe-row::-webkit-scrollbar{display:none}
+.vibe{position:relative;aspect-ratio:4/3;border-radius:14px;overflow:hidden;border:1px solid var(--border);cursor:pointer}
+.vibe img{width:100%;height:100%;object-fit:cover;opacity:.72;transition:transform .4s var(--ease)}
+.vibe:hover img{transform:scale(1.06)}
+.vibe::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 35%,rgba(0,0,0,.78))}
+.vibe span{position:absolute;left:12px;bottom:10px;z-index:2;font-family:Anton,sans-serif;font-size:16px;text-transform:uppercase;letter-spacing:.5px;color:#fff}
+.vibe.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+@media(max-width:600px){.vibe-row{grid-auto-columns:minmax(128px,1fr)}}
+
+/* community */
+.community{margin-top:56px;background:linear-gradient(180deg,var(--surface),transparent);border:1px solid var(--border);border-radius:24px;padding:30px}
+.community .head{display:flex;align-items:center;gap:14px;margin-bottom:8px;flex-wrap:wrap}
+.pulse{width:9px;height:9px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,255,255,.35)}70%{box-shadow:0 0 0 10px rgba(255,255,255,0)}100%{box-shadow:0 0 0 0 rgba(255,255,255,0)}}
+
+/* ---------- modal ---------- */
+.overlay{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.66);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:20px}
+.overlay.open{display:flex}
+/* glass card treatment (ported from the GlassCard component) */
+.modal{background:color-mix(in srgb, var(--surface) 62%, transparent);
+  border:1px solid color-mix(in srgb, var(--fg) 16%, transparent);
+  border-radius:22px;max-width:860px;width:100%;max-height:90vh;overflow:auto;scrollbar-width:thin;
+  backdrop-filter:blur(22px) saturate(150%);-webkit-backdrop-filter:blur(22px) saturate(150%);
+  box-shadow:0 24px 70px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.16)}
+:root[data-mode="light"] .modal{background:rgba(255,255,255,.72);
+  border-color:rgba(0,0,0,.09);box-shadow:0 24px 70px rgba(20,25,40,.18), inset 0 1px 0 rgba(255,255,255,.9)}
+/* fields inside the glass stay translucent too */
+.modal .field-group input,.modal .field-group textarea,.modal .glass-field{
+  background:color-mix(in srgb, var(--bg) 45%, transparent)}
+:root[data-mode="light"] .modal .field-group input,
+:root[data-mode="light"] .modal .field-group textarea{background:rgba(255,255,255,.75)}
+.modal-detail{display:grid;grid-template-columns:1fr 1fr}
+.modal-detail .img{aspect-ratio:3/4;background:var(--surface-2)}
+.modal-detail .img img{width:100%;height:100%;object-fit:cover}
+.modal-detail .info{padding:28px}
+.modal-detail .info h3{font-family:Anton,sans-serif;font-size:32px;margin:6px 0 4px;text-transform:uppercase;line-height:1}
+.modal-detail .info .brand{font-size:13px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.6px}
+.kv{display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border);font-size:14px}
+.kv span:first-child{color:var(--muted)}
+.kv b{font-weight:600}
+.modal-cta{display:flex;gap:10px;margin-top:20px}
+.modal-cta .btn{flex:1;text-align:center;padding:14px}
+.close-x{position:absolute;top:16px;right:16px;z-index:2}
+.modal-wrap{position:relative}
+@media(max-width:700px){.modal-detail{grid-template-columns:1fr}.modal-detail .img{aspect-ratio:16/10}}
+
+/* submit form */
+.modal-form{padding:30px}
+.modal-form h3{font-family:Anton,sans-serif;font-size:28px;text-transform:uppercase;margin:0 0 6px}
+.modal-form p.desc{color:var(--muted);font-size:14px;margin:0 0 22px}
+.drop{border:2px dashed var(--border);border-radius:16px;padding:34px;text-align:center;color:var(--faint);transition:.2s;cursor:pointer;margin-bottom:16px}
+.drop:hover{border-color:var(--accent);color:var(--muted)}
+.field-group{margin-bottom:15px}
+.field-group label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px}
+.field-group input,.field-group textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--fg);font-family:inherit;font-size:14px;outline:none;transition:border-color .2s}
+.field-group input:focus,.field-group textarea:focus{border-color:var(--accent)}
+/* ---------- progressive flux loader (ported from the React component) ----------
+   Phase label flies in per letter, the fill carries a glow + a sheen that
+   glides across it. Colours follow the active theme accent. */
+.flux{display:flex;flex-direction:column;gap:14px;width:100%;padding:8px 0 4px}
+.flux-labelbox{position:relative;height:34px;perspective:1000px;user-select:none}
+.flux-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:Anton,sans-serif;text-transform:uppercase;letter-spacing:.5px;font-size:20px;color:var(--fg);
+  transform-style:preserve-3d}
+.flux-label.out{animation:fluxOut .42s cubic-bezier(.7,0,.84,0) forwards}
+.flux-label span{display:inline-block;opacity:0;animation:fluxLetter .45s cubic-bezier(.22,1,.36,1) forwards}
+@keyframes fluxLetter{from{opacity:0;transform:translateY(12px);filter:blur(8px)}
+                      to{opacity:1;transform:none;filter:blur(0)}}
+@keyframes fluxOut{to{opacity:0;transform:translateZ(220px) scale(1.35);filter:blur(10px)}}
+.flux-track{position:relative;height:18px;width:100%;border-radius:999px;overflow:hidden;
+  background:var(--surface-2);box-shadow:inset 0 2px 3px rgba(0,0,0,.45), inset 0 -1px 2px rgba(255,255,255,.05)}
+.flux-fill{position:relative;height:100%;width:0;border-radius:999px;
+  background:linear-gradient(90deg, var(--accent) 0%, color-mix(in oklab, var(--accent), var(--accent-2)) 35%,
+             var(--accent-2) 55%, color-mix(in oklab, var(--accent), var(--accent-2)) 78%, var(--accent) 100%);
+  box-shadow:0 0 18px color-mix(in srgb, var(--accent) 45%, transparent),
+             0 0 32px color-mix(in srgb, var(--accent-2) 30%, transparent),
+             inset 0 1.5px 0 rgba(255,255,255,.5), inset 0 -2px 3px rgba(0,0,0,.3);
+  transition:width .55s cubic-bezier(.22,1,.36,1)}
+.flux-sheen{position:absolute;inset:0 auto 0 0;width:50%;border-radius:999px;pointer-events:none;
+  background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.55) 50%,transparent 100%);
+  mix-blend-mode:screen;animation:fluxSheen 1.6s linear infinite}
+@keyframes fluxSheen{from{transform:translateX(-110%)}to{transform:translateX(210%)}}
+.flux-pct{font-size:11.5px;color:var(--faint);text-align:center;font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion:reduce){
+  .flux-sheen{display:none}
+  .flux-label span{animation:none;opacity:1}
+  .flux-fill{transition:none}
+}
+
+.spot-loading{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:14px;padding:12px 2px}
+.spinner{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;flex:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spot-card{border:1px solid var(--border);border-radius:16px;padding:18px;background:var(--surface-2)}
+.spot-lead{font-size:12px;color:var(--muted)}
+.spot-brand{font-family:Anton,sans-serif;font-size:27px;text-transform:uppercase;line-height:1;margin:3px 0;word-break:break-word}
+.spot-handle{font-size:12px;color:var(--faint);margin-bottom:4px}
+.conf-bar{height:8px;border-radius:999px;background:var(--surface);overflow:hidden;margin:12px 0 5px}
+.conf-fill{height:100%;background:var(--accent);border-radius:999px;width:0;transition:width .7s var(--ease)}
+.conf-label{font-size:12px;color:var(--muted);margin-bottom:14px}
+.spot-ev{list-style:none;padding:0;margin:0 0 16px;display:grid;gap:7px}
+.spot-ev li{font-size:13px;color:var(--fg);display:flex;gap:8px;align-items:flex-start}
+.spot-ev li b{color:var(--accent);flex:none}
+.spot-hint{color:var(--faint);font-size:13px;padding:6px 0}
+.spot-tag{display:inline-block;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;padding:4px 9px;border-radius:999px;background:var(--accent-2);color:#fff;margin-bottom:10px}
+.photo-preview{width:76px;height:76px;object-fit:cover;border-radius:12px;border:1px solid var(--border);margin:10px 0}
+.match-list{display:grid;gap:7px}
+.match-row{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:8px 10px;text-decoration:none;transition:border-color .2s}
+.match-row:hover{border-color:var(--faint)}
+.match-thumb{width:42px;height:42px;flex:none;object-fit:cover;border-radius:8px;background:var(--surface-2)}
+.match-main{flex:1;min-width:0;display:flex;flex-direction:column}
+.match-src{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--faint)}
+.match-src b{color:var(--accent)}
+.match-title{font-size:13px;color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.match-go{color:var(--muted);flex:none}
+.item-list{display:grid;gap:8px}
+.item-row{display:flex;align-items:center;gap:11px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:11px 12px;transition:border-color .2s}
+.item-row:hover{border-color:var(--faint)}
+.item-ico{flex:none;width:34px;height:34px;border-radius:10px;background:var(--surface-2);display:grid;place-items:center;color:var(--muted)}
+.item-ico svg{width:19px;height:19px}
+.item-main{flex:1;min-width:0}
+.item-cat{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--faint)}
+.item-brand{font-size:15px;font-weight:700;color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item-alt{font-size:11px;color:var(--faint);margin-top:1px}
+.item-right{display:flex;align-items:center;gap:9px;flex:none}
+.item-conf{font-family:Anton,sans-serif;font-size:15px;color:var(--accent)}
+.item-go{width:28px;height:28px;border-radius:50%;border:1px solid var(--border);display:grid;place-items:center;color:var(--muted);font-size:13px;text-decoration:none}
+.item-go:hover{border-color:var(--accent);color:var(--accent)}
+.spot-left{font-size:12px;color:var(--faint);text-align:center;margin-top:12px}
+.db-note{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--accent);background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:10px;padding:9px 11px;margin-bottom:12px}
+.db-note b{color:var(--fg)}
+.db-note svg{flex:none}
+.db-note:empty{display:none}
+.badge.newbrand{background:var(--accent-2);color:#fff}
+/* auth (sign in / sign up) */
+.auth-modal{max-width:860px;width:100%;display:grid;grid-template-columns:1fr 1fr;overflow:hidden}
+.auth-hero{position:relative;overflow:hidden;min-height:540px;display:flex;flex-direction:column;justify-content:space-between;padding:32px}
+.auth-hero-bg{position:absolute;inset:0;z-index:0}
+.auth-hero-bg span{position:absolute;border-radius:50%;filter:blur(48px);opacity:.85}
+.auth-hero-bg .b1{width:280px;height:280px;background:#ff3d81;left:-60px;top:-40px;animation:floatA 14s ease-in-out infinite}
+.auth-hero-bg .b2{width:240px;height:240px;background:#d6ff3f;right:-50px;top:70px;animation:floatB 18s ease-in-out infinite}
+.auth-hero-bg .b3{width:260px;height:260px;background:#5b8cff;left:10px;bottom:-70px;animation:floatA 16s ease-in-out infinite}
+.auth-hero-bg .b4{width:180px;height:180px;background:#ff9d3d;right:20px;bottom:10px;animation:floatB 20s ease-in-out infinite}
+@keyframes floatA{50%{transform:translate(18px,-16px)}}
+@keyframes floatB{50%{transform:translate(-18px,16px)}}
+.auth-hero>*{position:relative;z-index:1}
+.auth-hero .logo{color:#fff}
+.auth-hero h3{font-family:Anton,sans-serif;font-size:36px;text-transform:uppercase;line-height:1;margin:0 0 10px;color:#fff}
+.auth-hero p{font-size:14px;color:rgba(255,255,255,.92);max-width:270px;margin:0}
+.auth-hero .quote{font-size:13px;color:rgba(255,255,255,.9);font-style:italic}
+.auth-body{padding:30px}
+.auth-tabs{display:flex;gap:6px;background:var(--surface-2);border-radius:999px;padding:4px;margin-bottom:20px}
+.auth-tab{flex:1;text-align:center;padding:9px;border-radius:999px;font-size:13px;font-weight:700;color:var(--muted);transition:.15s}
+.auth-tab.on{background:var(--fg);color:var(--bg)}
+.social-btn{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;padding:11px;border:1px solid var(--border);border-radius:12px;background:var(--surface-2);font-weight:600;font-size:14px;margin-bottom:9px;transition:.15s}
+.social-btn:hover{border-color:var(--faint)}
+.social-btn.ig{background:linear-gradient(90deg,#f09433,#dc2743,#bc1888);color:#fff;border:none}
+.ig-hint{font-size:11px;color:var(--faint);text-align:center;margin:-2px 0 8px}
+.auth-or{display:flex;align-items:center;gap:10px;margin:14px 0;color:var(--faint);font-size:12px;font-weight:600}
+.auth-or::before,.auth-or::after{content:"";flex:1;height:1px;background:var(--border)}
+.glass-field{display:flex;align-items:center;gap:9px;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:12px;transition:border-color .2s}
+.glass-field:focus-within{border-color:var(--accent)}
+.glass-field>svg{color:var(--faint);flex:none}
+.glass-field input{flex:1;background:none;border:none;outline:none;color:var(--fg);font-size:14px;font-family:inherit}
+.glass-field .toggle{cursor:pointer;color:var(--faint);background:none;border:none;padding:0;display:flex}
+.auth-err{color:#ff6b6b;font-size:12px;margin:-4px 0 10px;min-height:15px}
+.auth-submit{width:100%;padding:13px;border-radius:12px;background:var(--accent);color:var(--on-accent);font-weight:700;font-size:14px}
+.auth-switch{display:block;width:100%;text-align:center;margin-top:14px;font-size:13px;color:var(--muted);background:none;border:none;cursor:pointer}
+.auth-switch:hover{color:var(--fg)}
+.auth-terms{font-size:11px;color:var(--faint);text-align:center;margin-top:14px}
+@media(max-width:720px){.auth-modal{grid-template-columns:1fr}.auth-hero{min-height:150px;padding:22px;flex-direction:row;align-items:center;gap:14px}.auth-hero .quote{display:none}.auth-hero h3{font-size:24px}}
+@keyframes confFall{to{transform:translateY(60vh) rotate(400deg);opacity:0}}
+
+/* --- LIQUID GLASS (ported from the sign-up component, vanilla CSS) --- */
+@property --lg1{syntax:"<angle>";inherits:false;initial-value:-75deg}
+.glass-field,.social-btn,.auth-submit,.btn{position:relative;isolation:isolate;overflow:hidden}
+.glass-field{background:rgba(255,255,255,.05)!important;border:1px solid transparent!important;backdrop-filter:blur(6px)}
+.social-btn{backdrop-filter:blur(6px)}
+.glass-field::after,.social-btn::after,.auth-submit::after,.btn::after{
+  content:"";position:absolute;inset:0;border-radius:inherit;padding:1.5px;z-index:3;pointer-events:none;
+  background:conic-gradient(from var(--lg1) at 50% 50%, oklch(from var(--fg) l c h / 55%) 0%, transparent 6% 40%, oklch(from var(--fg) l c h / 55%) 50%, transparent 60% 94%, oklch(from var(--fg) l c h / 55%) 100%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
+  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude;
+  box-shadow:inset 0 0 0 .75px oklch(from var(--bg) l c h / 50%);
+  transition:--lg1 .5s ease}
+.glass-field:focus-within::after,.social-btn:hover::after,.auth-submit:hover::after,.btn:hover::after,.chip:hover::after{--lg1:-125deg}
+/* on light accent buttons the white shimmer would vanish — flip it dark */
+.btn-primary::after,.auth-submit::after{
+  background:conic-gradient(from var(--lg1) at 50% 50%, oklch(from var(--on-accent) l c h / 45%) 0%, transparent 6% 40%, oklch(from var(--on-accent) l c h / 45%) 50%, transparent 60% 94%, oklch(from var(--on-accent) l c h / 45%) 100%)}
+/* filter chips get the same treatment */
+.chip{position:relative;isolation:isolate;overflow:hidden}
+.chip::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;z-index:3;pointer-events:none;
+  background:conic-gradient(from var(--lg1) at 50% 50%, oklch(from var(--fg) l c h / 30%) 0%, transparent 8% 42%, oklch(from var(--fg) l c h / 30%) 50%, transparent 58% 92%, oklch(from var(--fg) l c h / 30%) 100%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
+  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude;
+  transition:--lg1 .5s ease}
+.glass-field::before,.auth-submit::before{
+  content:"";position:absolute;inset:0;border-radius:inherit;z-index:2;pointer-events:none;
+  background:linear-gradient(-45deg, transparent 0%, oklch(from var(--fg) l c h / 14%) 40% 50%, transparent 55%);
+  mix-blend-mode:screen}
+.glass-field>svg,.glass-field input,.glass-field .toggle{position:relative;z-index:4}
+.auth-submit{backdrop-filter:blur(6px);box-shadow:inset 0 1px 2px oklch(from var(--fg) l c h / 30%), inset 0 -2px 3px oklch(from var(--on-accent) l c h / 30%), 0 6px 14px -4px oklch(from var(--bg) l c h / 70%)}
+@media (hover:none) and (pointer:coarse){.glass-field::after,.social-btn::after,.auth-submit::after,.btn::after{--lg1:-75deg}}
+
+.form-success{text-align:center;padding:40px 20px}
+.form-success .check{width:64px;height:64px;border-radius:50%;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;margin:0 auto 18px}
+
+/* ---------- FAQ ---------- */
+.faq-wrap{padding:70px 0 20px}
+.faq{display:grid;gap:10px;max-width:820px}
+.faq-item{border:1px solid var(--border);border-radius:14px;background:var(--surface);overflow:hidden;transition:border-color .2s}
+.faq-item:hover{border-color:color-mix(in srgb,var(--accent) 45%,var(--border))}
+.faq-q{width:100%;display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:16px 18px;font-size:15px;font-weight:600;text-align:left;color:var(--fg);background:none}
+.faq-q .pm{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;
+  background:var(--surface-2);color:var(--muted);transition:transform .3s var(--ease),background .2s}
+.faq-item.open .pm{transform:rotate(45deg);background:var(--accent);color:var(--on-accent)}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .35s var(--ease)}
+.faq-a p{margin:0;padding:0 18px 18px;color:var(--muted);font-size:14px;line-height:1.65;max-width:62ch}
+.faq-item.open .faq-a{max-height:340px}
+
+/* ---------- footer ---------- */
+.site-foot{position:relative;border-top:1px solid var(--border);margin-top:60px;padding:56px 0 40px;
+  background:radial-gradient(38% 130px at 50% 0%, color-mix(in srgb,var(--accent) 12%,transparent), transparent)}
+.foot-glow{position:absolute;top:0;left:50%;transform:translate(-50%,-50%);width:34%;height:2px;
+  border-radius:999px;background:var(--accent);filter:blur(3px);opacity:.65}
+.foot-grid{display:grid;grid-template-columns:1.1fr 2fr;gap:36px}
+.foot-brand p{color:var(--muted);font-size:13.5px;max-width:34ch;margin:14px 0 0}
+.foot-copy{font-size:12px;color:var(--faint);margin-top:14px!important}
+.foot-cols{display:grid;grid-template-columns:repeat(4,1fr);gap:26px}
+.foot-cols h3{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.9px;color:var(--fg);margin:0 0 12px}
+.foot-cols ul{list-style:none;margin:0;padding:0;display:grid;gap:9px}
+.foot-cols a{color:var(--muted);font-size:13.5px;display:inline-flex;align-items:center;gap:7px;transition:color .25s}
+.foot-cols a:hover{color:var(--accent)}
+.foot-cols svg{width:15px;height:15px;flex:none}
+@media(max-width:860px){.foot-grid{grid-template-columns:1fr}.foot-cols{grid-template-columns:repeat(2,1fr)}}
+/* blur-up entrance, matching the component's AnimatedContainer */
+.foot-anim{opacity:0;filter:blur(4px);transform:translateY(-8px);
+  transition:opacity .8s var(--ease),filter .8s var(--ease),transform .8s var(--ease)}
+.foot-anim.in{opacity:1;filter:blur(0);transform:none}
+@media (prefers-reduced-motion:reduce){.foot-anim{opacity:1;filter:none;transform:none}}
+
+/* ---------- macOS-style dock ---------- */
+.dock-wrap{position:fixed;left:0;right:0;bottom:18px;z-index:65;display:flex;justify-content:center;pointer-events:none}
+/* liquid glass: a distorted blur layer, a light tint, then the inner edge */
+.dock{pointer-events:auto;position:relative;display:block;border-radius:26px;padding:9px;
+  background:transparent;border:none;overflow:hidden;
+  box-shadow:0 6px 6px rgba(0,0,0,.2), 0 0 20px rgba(0,0,0,.1);
+  transition:width .05s linear, padding .5s cubic-bezier(.175,.885,.32,2.2)}
+.dock:hover{padding:12px}
+.dock-glass,.dock-tint,.dock-edge{position:absolute;inset:0;border-radius:inherit;pointer-events:none}
+.dock-glass{z-index:0;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+  filter:url(#glass-distortion);isolation:isolate}
+.dock-tint{z-index:1;background:rgba(255,255,255,.16)}
+.dock-edge{z-index:2;box-shadow:inset 2px 2px 1px 0 rgba(255,255,255,.45),
+                              inset -1px -1px 1px 1px rgba(255,255,255,.4)}
+:root[data-mode="light"] .dock-tint{background:rgba(255,255,255,.42)}
+.dock-inner{position:relative;z-index:3}
+.dock-inner{position:relative;height:52px}
+.dock-item{position:absolute;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;cursor:pointer;transform-origin:bottom center}
+/* the glyphs are abstract, so name them instead of hiding it behind a hover */
+.dock-name{margin-top:5px;font-size:9.5px;font-weight:700;letter-spacing:.2px;white-space:nowrap;
+  color:var(--muted);text-align:center;
+  transition:color .2s,opacity .2s}
+.dock-item:hover .dock-name{color:var(--fg)}
+:root[data-mode="light"] .dock-name{color:#4a4f58}
+/* frosted tiles — quiet, so the dock reads as one piece of glass */
+.dock-glyph{width:100%;height:100%;border-radius:26%;display:grid;place-items:center;color:#fff;
+  background:linear-gradient(160deg,rgba(255,255,255,.22),rgba(255,255,255,.06));
+  border:1px solid rgba(255,255,255,.22);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5), inset 0 -2px 6px rgba(0,0,0,.18), 0 2px 8px rgba(0,0,0,.22);
+  transition:transform .7s cubic-bezier(.175,.885,.32,2.2), background .3s}
+.dock-item:hover .dock-glyph{background:linear-gradient(160deg,rgba(255,255,255,.34),rgba(255,255,255,.12))}
+/* only the two primary actions carry colour */
+.dock-item[data-id="link"] .dock-glyph{background:linear-gradient(160deg,
+   color-mix(in srgb,var(--accent) 92%,#fff), var(--accent));border-color:rgba(255,255,255,.32)}
+.dock-item[data-id="plus"] .dock-glyph{background:linear-gradient(160deg,#fff,#dcdce2);color:#15171c}
+:root[data-mode="light"] .dock-glyph{color:#15171c;
+  background:linear-gradient(160deg,rgba(255,255,255,.9),rgba(255,255,255,.55));
+  border-color:rgba(0,0,0,.08)}
+:root[data-mode="light"] .dock-item[data-id="link"] .dock-glyph{color:#fff}
+.dock-glyph svg{width:52%;height:52%}
+.dock-dot{position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.85);box-shadow:0 0 4px rgba(0,0,0,.4)}
+.dock-tip{position:absolute;bottom:calc(100% + 12px);left:50%;transform:translateX(-50%) translateY(4px);
+  background:rgba(28,28,32,.95);color:#fff;font-size:12px;font-weight:600;white-space:nowrap;
+  padding:6px 11px;border-radius:8px;border:1px solid rgba(255,255,255,.14);opacity:0;pointer-events:none;transition:opacity .15s,transform .15s}
+.dock-item:hover .dock-tip{opacity:1;transform:translateX(-50%) translateY(0)}
+@media(max-width:768px){.dock-wrap{display:none}}
+@media(min-width:769px){body{padding-bottom:96px}}
+
+/* ---------- mobile app-like bottom nav ---------- */
+.tabbar{display:none}
+@media(max-width:768px){
+  .grid{grid-template-columns:1fr 1fr;gap:12px}
+  #featuredGrid{grid-template-columns:1fr 1fr}
+  .card .name{font-size:13.5px}
+  .card .price{font-size:17px}
+  body{padding-bottom:76px}
+  .toolbar{top:64px}
+  .tabbar{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;bottom:0;left:0;right:0;z-index:60;
+    background:rgba(11,11,13,.94);backdrop-filter:blur(16px);border-top:1px solid var(--border);
+    padding:9px 4px calc(9px + env(safe-area-inset-bottom))}
+  .tabbar button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;font-weight:600;color:var(--faint);padding:2px 0;transition:color .15s}
+  .tabbar button.on{color:var(--fg)}
+  .tabbar button svg{width:22px;height:22px}
+  .tabbar button.spot .ico{background:var(--accent);color:var(--on-accent);width:44px;height:30px;border-radius:11px;display:grid;place-items:center;margin-bottom:1px}
+  .tabbar button.spot{color:var(--fg)}
+}
+/* theme preview picker (prototype only) */
+.theme-pick{position:fixed;left:16px;bottom:16px;z-index:70;display:flex;align-items:center;gap:8px;background:rgba(11,11,13,.9);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:999px;padding:7px 13px}
+.tp-label{font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.theme-pick button{width:20px;height:20px;border-radius:50%;background:var(--sw);border:2px solid transparent;box-shadow:0 0 0 1px var(--border);padding:0}
+.theme-pick button.on{box-shadow:0 0 0 2px var(--fg)}
+@media(max-width:768px){.theme-pick{bottom:88px;left:12px;padding:6px 11px}}
+
+/* mode toggle: the icons swap with a small rotation */
+#modeToggle{overflow:hidden;position:relative}
+#modeToggle svg{position:absolute;transition:transform .45s var(--ease),opacity .3s}
+.ico-sun{opacity:0;transform:rotate(-90deg) scale(.5)}
+:root[data-mode="light"] .ico-moon{opacity:0;transform:rotate(90deg) scale(.5)}
+:root[data-mode="light"] .ico-sun{opacity:1;transform:none}
+/* one soft wash when the mode flips, so the change reads as deliberate */
+.mode-flip::after{content:"";position:fixed;inset:0;z-index:200;pointer-events:none;
+  background:radial-gradient(circle at 92% 4%, color-mix(in srgb,var(--accent) 22%,transparent), transparent 55%);
+  animation:modeWash .5s ease-out forwards}
+@keyframes modeWash{from{opacity:1}to{opacity:0}}
+
+/* hero entrance — the headline is the first thing to land */
+.hero h1,.hero p.sub,.hero-search,.trending,.stats{animation:riseIn .7s var(--ease) both}
+.hero p.sub{animation-delay:.08s}
+.hero-search{animation-delay:.16s}
+.trending{animation-delay:.24s}
+.stats{animation-delay:.32s}
+@keyframes riseIn{from{opacity:0;transform:translateY(18px);filter:blur(6px)}
+                  to{opacity:1;transform:none;filter:blur(0)}}
+/* cards land in a stagger as they scroll in */
+.card.reveal.in{animation:cardIn .55s var(--ease) both}
+@keyframes cardIn{from{opacity:0;transform:translateY(22px) scale(.985)}to{opacity:1;transform:none}}
+.card:active{transform:scale(.985)}
+@media (prefers-reduced-motion:reduce){
+  .hero h1,.hero p.sub,.hero-search,.trending,.stats,.card.reveal.in{animation:none}
+  .mode-flip::after{display:none}
+}
+
+/* ---------- scroll-tilt showcase (ported from ContainerScroll) ----------
+   The panel starts tilted back and lays itself flat as you scroll, the way
+   Apple hands a device over to the viewer. */
+.tilt-wrap{max-width:var(--maxw);margin:0 auto;padding:40px 20px 20px}
+.tilt-stage{perspective:1000px}
+.tilt-head{text-align:center;max-width:640px;margin:0 auto 26px}
+.tilt-head p{font-size:13px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+.tilt-head h2{font-size:clamp(30px,6vw,62px);margin:0;line-height:.95}
+.tilt-card{
+  max-width:1000px;margin:0 auto;padding:10px;border-radius:28px;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--fg) 14%,transparent),color-mix(in srgb,var(--fg) 5%,transparent));
+  border:1px solid var(--border);
+  box-shadow:0 9px 20px rgba(0,0,0,.29),0 37px 37px rgba(0,0,0,.26),0 84px 50px rgba(0,0,0,.15),0 149px 60px rgba(0,0,0,.04);
+  transform:rotateX(18deg) scale(1.04);transform-origin:50% 0%;
+}
+.tilt-screen{border-radius:20px;overflow:hidden;background:var(--surface-2);
+  display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:6px;aspect-ratio:16/9}
+.tilt-screen img{width:100%;height:100%;object-fit:cover;border-radius:12px;display:block}
+.tilt-screen .tile{position:relative;overflow:hidden;border-radius:12px;background:var(--surface)}
+.tilt-screen .tile b{position:absolute;left:8px;bottom:7px;font-size:10px;font-weight:800;letter-spacing:.3px;
+  text-transform:uppercase;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.9)}
+@media(max-width:768px){
+  .tilt-screen{grid-template-columns:repeat(2,1fr);aspect-ratio:4/3}
+  .tilt-card{transform:rotateX(14deg) scale(.98)}
+}
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference){
+    .tilt-card{animation:tiltFlat linear both;animation-timeline:view();animation-range:entry 10% cover 55%}
+    @keyframes tiltFlat{
+      from{transform:rotateX(20deg) scale(1.05)}
+      to{transform:rotateX(0deg) scale(1)}
+    }
+    .tilt-head{animation:tiltHead linear both;animation-timeline:view();animation-range:entry 10% cover 55%}
+    @keyframes tiltHead{from{transform:translateY(0);opacity:.7}to{transform:translateY(-60px);opacity:1}}
+  }
+}
+
+/* ---------- scroll-driven motion (Apple-style hand-off) ----------
+   Native CSS timelines: the browser drives these off the scroller, so they
+   stay smooth and cost no main-thread work. Browsers without support simply
+   render the static end state. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference){
+    /* the hero recedes as the feed takes over */
+    .hero-inner{
+      animation:heroRecede linear both;
+      animation-timeline:view();
+      animation-range:exit -10% exit 90%;
+    }
+    @keyframes heroRecede{to{opacity:.25;transform:translateY(-40px) scale(.94);filter:blur(3px)}}
+
+    /* section headings settle into place */
+    .section-head{
+      animation:headIn linear both;
+      animation-timeline:view();
+      animation-range:entry 5% entry 55%;
+    }
+    @keyframes headIn{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
+
+    /* vibe tiles drift at their own pace — depth without parallax sickness */
+    .vibe{
+      animation:tileDrift linear both;
+      animation-timeline:view(inline);
+      animation-range:entry 0% exit 100%;
+    }
+    @keyframes tileDrift{from{transform:translateY(14px) scale(.96)}to{transform:translateY(-8px) scale(1)}}
+
+    /* the featured row grows in as it arrives */
+    #featuredGrid{
+      animation:featureIn linear both;
+      animation-timeline:view();
+      animation-range:entry 0% entry 60%;
+    }
+    @keyframes featureIn{from{opacity:.2;transform:scale(.97)}to{opacity:1;transform:none}}
+  }
+}
+
+.reveal{opacity:0;transform:translateY(16px);transition:opacity .5s var(--ease),transform .5s var(--ease)}
+.reveal.in{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.reveal{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+
+<div class="bg-layer bg-wash"></div>
+<div class="bg-layer bg-grid"></div>
+<div class="bg-layer bg-vignette"></div>
+<div class="bg-layer bg-grain"></div>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <div class="logo"><span class="the">THE</span>PL<b>U</b>G</div>
+    <label class="nav-search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="navSearch" type="text" data-i18n-ph="search.ph" />
+    </label>
+    <div class="nav-spacer"></div>
+    <div class="nav-actions">
+      <div class="lang">
+        <button data-lang="en" class="on">EN</button>
+        <button data-lang="pl">PL</button>
+      </div>
+      <button class="icon-only" id="alertsBtn" aria-label="Alerts" title="Alerts">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+        <span class="bell-dot" id="bellDot" hidden></span>
+      </button>
+      <button class="icon-only" id="modeToggle" aria-label="Toggle light and dark mode" title="Light / dark">
+        <svg class="ico-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
+        <svg class="ico-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8"/></svg>
+      </button>
+      <button class="btn btn-ghost" id="openAuth" data-i18n="auth.nav">Sign in</button>
+      <button class="btn btn-plus" id="openPlus"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.8 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z"/></svg><span data-i18n="plus.nav">Plug+</span></button>
+      <button class="btn btn-primary" id="openSubmit" data-i18n="nav.submit">Submit a find</button>
+    </div>
+  </div>
+</header>
+
+<!-- routed pages -->
+<div id="brandPage" style="display:none"></div>
+<div id="itemPage" style="display:none"></div>
+
+<section class="hero" id="heroSection">
+  <div class="hero-blob"></div>
+  <div class="wrap hero-inner">
+    <h1 class="anton">Find the <span class="hl" data-i18n="hero.fit">fit.</span></h1>
+    <p class="sub" data-i18n="hero.sub">Saw a jacket in a reel and need it? Search the drop — big labels and tiny Instagram brands, all in one place.</p>
+    <div class="hero-search">
+      <label class="field beam">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--faint)"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <input id="heroSearch" type="text" data-i18n-ph="hero.ph" />
+      </label>
+      <button class="btn btn-primary" id="heroSearchBtn" data-i18n="hero.cta">Search</button>
+    </div>
+    <div class="trending">
+      <span class="lbl" data-i18n="hero.trending">Trending:</span>
+    </div>
+    <div class="stats">
+      <div class="stat"><b>12,480</b><span data-i18n="stat.items">items indexed</span></div>
+      <div class="stat"><b>1,930</b><span data-i18n="stat.brands">brands — 70% indie</span></div>
+      <div class="stat"><b>340</b><span data-i18n="stat.pending">finds waiting to be ID'd</span></div>
+    </div>
+  </div>
+</section>
+
+<div class="toolbar">
+  <div class="wrap toolbar-inner" id="filterBar"></div>
+</div>
+
+<!-- scroll-tilt showcase (ported from the ContainerScroll component) -->
+<section class="tilt-wrap" id="tiltSection">
+  <div class="tilt-stage">
+    <div class="tilt-head">
+      <p data-i18n="tilt.kicker">Paste a link. Get the whole fit.</p>
+      <h2 class="anton" data-i18n="tilt.title">Every piece, every brand</h2>
+    </div>
+    <div class="tilt-card">
+      <div class="tilt-screen" id="tiltScreen"></div>
+    </div>
+  </div>
+</section>
+
+<main class="wrap">
+  <div id="vibesSection">
+    <div class="section-head">
+      <h2 data-i18n="vibes.title">Shop by vibe</h2>
+      <span class="count" id="vibeClear" style="cursor:pointer;display:none" data-i18n="vibes.clear">Clear</span>
+    </div>
+    <div class="vibe-row" id="vibeRow"></div>
+  </div>
+
+  <div id="featuredSection">
+    <div class="section-head" style="margin-top:44px">
+      <h2 data-i18n="featured.title">Featured</h2>
+      <span class="count" data-i18n="featured.tag">Sponsored — brands pay to appear here</span>
+    </div>
+    <div class="grid" id="featuredGrid"></div>
+  </div>
+
+  <div id="feedSection">
+    <div class="section-head" style="margin-top:44px">
+      <h2 id="feedTitle" data-i18n="feed.title">The feed</h2>
+      <span class="count" id="feedCount"></span>
+    </div>
+    <div class="grid" id="grid"></div>
+    <div class="feed-more" id="feedMore"></div>
+  </div>
+
+  <section class="community" id="community">
+    <div class="head">
+      <span class="pulse"></span>
+      <h2 class="anton" style="font-size:24px;margin:0" data-i18n="community.title">Help ID these</h2>
+    </div>
+    <p style="color:var(--muted);font-size:14px;margin:0 0 14px;max-width:640px" data-i18n="community.sub">Somebody spotted these in a reel but nobody knows the brand yet. Recognise one? Tag it and get credit.</p>
+    <div class="reward-hint">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.8 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z"/></svg>
+      <span data-i18n="id.hint">Every correct ID earns you a free TikTok look-up.</span>
+    </div>
+    <div class="grid" id="pendingGrid"></div>
+  </section>
+</main>
+
+<!-- weekly drop -->
+<section class="drop-wrap" id="dropSection">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 data-i18n="drop.title">The weekly drop</h2>
+      <span class="count" id="dropWeek"></span>
+    </div>
+    <p class="spot-hint" style="margin:-8px 0 18px;max-width:60ch" data-i18n="drop.sub">Ten brands you probably don't know yet.</p>
+    <div class="drop-grid" id="dropGrid"></div>
+    <form class="drop-form" id="dropForm">
+      <input type="email" id="dropEmail" required>
+      <button class="btn btn-primary" type="submit" data-i18n="drop.join">Get it every Monday</button>
+    </form>
+    <div class="drop-msg" id="dropMsg"></div>
+  </div>
+</section>
+
+<!-- leaderboard -->
+<section class="board-wrap" id="boardSection">
+  <div class="wrap">
+    <div class="section-head"><h2 data-i18n="board.title">Top spotters</h2></div>
+    <p class="spot-hint" style="margin:-8px 0 18px;max-width:60ch" data-i18n="board.sub">Confirmed IDs this season.</p>
+    <div class="board" id="board"></div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq-wrap" id="faq">
+  <div class="wrap">
+    <div class="section-head"><h2 data-i18n="faq.title">Questions</h2></div>
+    <div class="faq" id="faqList"></div>
+  </div>
+</section>
+
+<!-- footer (ported from the footer-section component) -->
+<footer class="site-foot">
+  <span class="foot-glow"></span>
+  <div class="wrap foot-grid">
+    <div class="foot-brand foot-anim">
+      <div class="logo" style="font-size:22px"><span class="the">THE</span>PL<b>U</b>G</div>
+      <p data-i18n="footer.tag">A database for clothes you spot in the wild. Prototype.</p>
+      <p class="foot-copy">© <span id="footYear"></span> The Plug</p>
+    </div>
+    <div class="foot-cols" id="footCols"></div>
+  </div>
+</footer>
+
+<!-- liquid-glass dock -->
+<svg style="display:none" aria-hidden="true">
+  <filter id="glass-distortion" x="0%" y="0%" width="100%" height="100%" filterUnits="objectBoundingBox">
+    <feTurbulence type="fractalNoise" baseFrequency="0.001 0.005" numOctaves="1" seed="17" result="turbulence"/>
+    <feGaussianBlur in="turbulence" stdDeviation="3" result="softMap"/>
+    <feDisplacementMap in="SourceGraphic" in2="softMap" scale="120" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</svg>
+<div class="dock-wrap">
+  <div class="dock" id="dock">
+    <span class="dock-glass"></span><span class="dock-tint"></span><span class="dock-edge"></span>
+    <div class="dock-inner" id="dockInner"></div>
+  </div>
+</div>
+
+<!-- theme preview picker -->
+<div class="theme-pick" id="themePick">
+  <span class="tp-label">Theme</span>
+  <button data-theme="sapphire" class="on" style="--sw:linear-gradient(135deg,#0a6bff,#31d9ff)" title="Sapphire"></button>
+  <button data-theme="violet" style="--sw:linear-gradient(135deg,#8b3dff,#ff5cc8)" title="Violet"></button>
+  <button data-theme="acid" style="--sw:linear-gradient(135deg,#c6ff00,#00ffa3)" title="Acid"></button>
+  <button data-theme="hot" style="--sw:linear-gradient(135deg,#ff2d6f,#ffa41b)" title="Hot"></button>
+</div>
+
+<!-- mobile bottom nav -->
+<nav class="tabbar" id="tabbar">
+  <button data-tab="feed" class="on">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+    <span data-i18n="tab.feed">Feed</span>
+  </button>
+  <button data-tab="search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+    <span data-i18n="tab.search">Search</span>
+  </button>
+  <button data-tab="spot" class="spot">
+    <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg></span>
+    <span data-i18n="tab.spot">Spot</span>
+  </button>
+  <button data-tab="pending">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 7v5l3 2"/></svg>
+    <span data-i18n="tab.id">Help ID</span>
+  </button>
+  <button data-tab="saved">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+    <span data-i18n="tab.saved">Saved</span>
+  </button>
+</nav>
+
+<!-- detail modal -->
+<div class="overlay" id="detailOverlay">
+  <div class="modal modal-wrap">
+    <button class="icon-only close-x" data-close>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+    <div class="modal-detail" id="detailBody"></div>
+  </div>
+</div>
+
+<!-- alerts modal -->
+<div class="overlay" id="alertsOverlay">
+  <div class="modal modal-wrap" style="max-width:520px">
+    <button class="icon-only close-x" data-close>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+    <div id="alertsBody"></div>
+  </div>
+</div>
+
+<!-- auth modal -->
+<div class="overlay" id="authOverlay">
+  <div class="modal modal-wrap" style="max-width:860px">
+    <button class="icon-only close-x" data-close>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+    <div id="authBody"></div>
+  </div>
+</div>
+
+<!-- plus / paywall modal -->
+<div class="overlay" id="plusOverlay">
+  <div class="modal modal-wrap" style="max-width:620px">
+    <button class="icon-only close-x" data-close>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+    <div id="plusBody"></div>
+  </div>
+</div>
+
+<!-- submit modal -->
+<div class="overlay" id="submitOverlay">
+  <div class="modal modal-wrap" style="max-width:520px">
+    <button class="icon-only close-x" data-close>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+    <div id="submitBody"></div>
+  </div>
+</div>
+
+<script src="/assets/js/catalog.js"></script>
+<script>
+/* ============ i18n ============ */
+const I18N = {
+  en:{
+    "search.ph":"Search brands, items, styles…",
+    "nav.submit":"Submit a find",
+    "hero.fit":"fit.",
+    "hero.sub":"Saw a jacket in a reel and need it? Search the drop — big labels and tiny Instagram brands, all in one place.",
+    "hero.ph":"Paste a reel link, or search “brown leather bomber”…",
+    "hero.cta":"Search",
+    "hero.trending":"Trending:",
+    "stat.items":"items indexed",
+    "stat.brands":"brands — 70% indie",
+    "stat.pending":"finds waiting to be ID'd",
+    "feed.title":"The feed",
+    "watch.on":"Notify me","watch.off":"Watching","watch.added":"We'll ping you on a restock or price drop","watch.removed":"Stopped watching",
+    "alerts.title":"Your alerts","alerts.none":"No alerts yet. Follow a piece and we'll tell you when it drops in price or comes back.","alerts.price":"price drop","alerts.restock":"back in stock","alerts.watching":"watching {n} pieces","alerts.nav":"Alerts",
+    "board.title":"Top spotters","board.sub":"Confirmed IDs this season. Every correct answer counts.","board.you":"you","board.ids":"IDs","board.pts":"pts","board.rank":"#",
+    "drop.title":"The weekly drop","drop.sub":"Ten brands you probably don't know yet. New set every Monday.","drop.week":"week {n}","drop.email":"your@email.com","drop.join":"Get it every Monday","drop.joined":"You're on the list ✦","drop.bad":"That email looks off.",
+    "feed.open":"Browse the whole feed —","feed.more":"Load more","feed.collapse":"Collapse the feed",
+    "brand.back":"Back","brand.shop":"Visit the shop","brand.pieces":"pieces","brand.nopieces":"No products indexed yet — open the shop to see everything.","brand.missing":"We don't have that brand yet.",
+    "item.more":"More from this brand","item.missing":"That piece is gone.",
+    "tilt.kicker":"Paste a link. Get the whole fit.","tilt.title":"Every piece, every brand",
+    "vibes.title":"Shop by vibe","vibes.clear":"Clear ✕",
+    "featured.title":"Featured","featured.tag":"Sponsored — brands pay to appear here","badge.featured":"Featured",
+    "tab.feed":"Feed","tab.search":"Search","tab.spot":"Spot","tab.id":"Help ID","tab.saved":"Saved",
+    "toast.saved":"Saved items land here — coming soon",
+    "plus.nav":"Plug+","plus.badge":"PLUG+",
+    "plus.title":"Get the whole Plug","plus.sub":"Browsing, searching, submitting finds and helping ID stay free — forever. Plug+ is for when you want the power tools.",
+    "plus.f1":"Unlimited TikTok → brand look-ups (free: 5 / month)",
+    "plus.f2":"Restock & price-drop alerts",
+    "plus.f3":"Unlimited saves & boards",
+    "plus.f4":"Priority ID — your finds skip the queue",
+    "plus.f5":"Snap to find: visual search — early access",
+    "plus.f6":"Ad-free + exclusive indie discounts",
+    "plus.f7":"Personalized For You feed + pro filters",
+    "plus.monthly":"Monthly","plus.mo.per":"per month","plus.mo.cta":"Start monthly",
+    "plus.life":"Founder · Lifetime","plus.life.per":"one-time · pay once","plus.life.note":"Only 500 founder spots left","plus.life.badge":"BEST VALUE","plus.life.cta":"Become a founder",
+    "tab.monthly":"monthly","tab.yearly":"yearly","tab.save":"Save 61%",
+    "plan.plus":"Plug+","plan.per_mo":"per month","plan.billed_mo":"billed monthly · cancel anytime",
+    "plan.billed_yr":"billed {y} once a year","plan.life_title":"Founder · Lifetime","plan.life_per":"one-time — yours forever",
+    "plan.cta_sub":"Get Plug+","plan.cta_life":"Become a founder","plan.popular":"MOST POPULAR",
+    "plus.free":"Free forever: browse, search, submit & help ID.","plus.disclaimer":"Prototype — no real payment is taken.",
+    "toast.plus":"Prototype — no real payment. But you get the vibe ✦",
+    "auth.nav":"Sign in","auth.signin":"Sign in","auth.signup":"Create account",
+    "auth.welcome_in":"Welcome back","auth.welcome_up":"Join The Plug",
+    "auth.sub_in":"Sign in to save finds and get restock alerts.","auth.sub_up":"Create an account and build a feed of brands you love.",
+    "auth.google":"Continue with Google","auth.instagram":"Continue with Instagram","auth.ig_hint":"We'll auto-import the brands you already follow",
+    "auth.or":"or","auth.email":"Email","auth.password":"Password","auth.confirm":"Confirm password",
+    "auth.email_ph":"you@email.com","auth.submit_in":"Sign in","auth.submit_up":"Create account",
+    "auth.to_up":"New here? Create an account","auth.to_in":"Already have an account? Sign in",
+    "auth.terms":"By continuing you agree to our Terms & Privacy.","auth.pw_short":"Password must be at least 6 characters","auth.pw_match":"Passwords don't match",
+    "auth.done_title":"You're in ✦","auth.done_desc":"Welcome to The Plug. Let's find some fits.","auth.done_btn":"Start exploring",
+    "community.title":"Help ID these",
+    "community.sub":"Somebody spotted these in a reel but nobody knows the brand yet. Recognise one? Tag it and get credit.",
+    "footer.tag":"A database for clothes you spot in the wild. Prototype.",
+    "faq.title":"Questions",
+    "faq.q1":"How does finding a brand from a TikTok work?",
+    "faq.a1":"Paste the link and we read the caption, hashtags and comments — including the creator's replies. Most of the time somebody already asked \"where's that from?\" and got an answer. We rank the candidates and show you each piece with its own brand and a link to the shop.",
+    "faq.q2":"Why does it sometimes find nothing?",
+    "faq.a2":"If nobody named the brand in the text, there is nothing to read. You can post the find to the community — someone usually recognises it, and once two people agree on the same brand it gets confirmed and added to the database.",
+    "faq.q3":"What does Plug+ cost and what do I get?",
+    "faq.a3":"Browsing, searching, submitting finds and helping identify are free forever. Plug+ is 14,99 zł a month, 69,99 zł a year, or 99,99 zł once for the Founder lifetime pass. It gives unlimited TikTok look-ups, restock and price-drop alerts, unlimited saves, priority identification and no ads.",
+    "faq.q4":"How many free look-ups do I get?",
+    "faq.a4":"Five a month. You can earn more by identifying other people's finds — every confirmed answer gives you one extra look-up, up to five a week.",
+    "faq.q5":"Where do the products and photos come from?",
+    "faq.a5":"Straight from each brand's own shop and public profile. Every item links back to the brand, so buying always happens on their site — we never sell anything ourselves.",
+    "faq.q6":"I run a brand. How do I get listed or featured?",
+    "faq.a6":"Listing is free — send us your shop and we add it. The Featured row on the homepage is a paid placement, marked as sponsored so nobody is misled.",
+    "faq.q7":"What happens to my data?",
+    "faq.a7":"We store your account, your saved items and the finds you submit. Images you upload are used only to run that one search. We do not sell personal data. You can ask us to delete your account and everything tied to it.",
+    "foot.product":"Product","foot.company":"Company","foot.legal":"Legal","foot.social":"Social",
+    "foot.search":"Search","foot.vibes":"Vibes","foot.spot":"Spot from link","foot.plus":"Plug+",
+    "foot.about":"About","foot.brands":"For brands","foot.contact":"Contact","foot.faq":"FAQ",
+    "foot.terms":"Terms of service","foot.privacy":"Privacy policy","foot.cookies":"Cookies","foot.rules":"Community rules",
+    "filter.all":"All","filter.indie":"Indie only","filter.big":"Big brands",
+    "c.Jackets":"Jackets","c.Denim":"Denim","c.Knitwear":"Knitwear","c.Tees":"Tees","c.Sneakers":"Shoes","c.Bags":"Bags","c.Accessories":"Accessories","c.Art":"Art / decor",
+    "detail.buy":"Buy now","detail.similar":"Find similar","detail.spotted":"Spotted in","detail.price":"Price","detail.category":"Category","detail.type":"Brand type","detail.avail":"Availability","detail.instock":"In stock","detail.indie":"Indie brand","detail.big":"Established brand","detail.na":"No link yet",
+    "identify.btn":"I know this!","identify.count":"people looking",
+    "id.ph":"Brand name or @handle","id.send":"Submit","id.cancel":"Cancel",
+    "id.thanks":"Nice one — thanks!","id.reward":"+1 free look-up earned ✦","id.earned":"You now have {n} free look-ups",
+    "id.hint":"Every correct ID earns you a free TikTok look-up — up to {max} a week.",
+    "id.progress":"{n}/{max} earned this week","id.capped":"Weekly limit reached","id.capped_desc":"Thanks — but you've hit {max} this week. Resets Monday.","id.capped_toast":"Weekly cap reached — resets Monday",
+    "id.pending":"Waiting for a second opinion","id.pending_desc":"You're the first to say {b}. Once someone agrees, it's confirmed and you get your look-up.",
+    "id.confirmed":"Confirmed by {n} people","id.confirmed_desc":"{b} it is — added to the database.",
+    "id.votes":"{n} guessed {b}","id.agree":"Agree","id.confirm_toast":"{b} confirmed ✦ +1 look-up",
+    "id.rule":"Rewards unlock when two people name the same brand.",
+    "submit.title":"Submit a find","submit.desc":"Drop a reel link or a screenshot. The community helps figure out what it is.","submit.drop":"Drag a screenshot here, or click to upload","submit.link":"Reel / TikTok link","submit.link.ph":"https://instagram.com/reel/…","submit.note":"What are you after? (optional)","submit.note.ph":"“The oversized washed denim jacket at 0:12”","submit.send":"Post to the community","submit.done.title":"You're in the queue","submit.done.desc":"Your find is live. We'll ping you the moment someone tags the brand.","submit.done.btn":"Nice",
+    "d.link":"Link","d.search":"Search","d.photo":"Photo","d.feed":"Feed","d.vibes":"Vibes","d.id":"Help ID","d.saved":"Saved","d.plus":"Plug+","d.account":"Account",
+    "dock.link":"Spot from link","dock.search":"Search by name","dock.photo":"Search by photo","dock.feed":"Feed","dock.vibes":"Vibes","dock.id":"Help ID","dock.saved":"Saved","dock.plus":"Plug+","dock.account":"Account",
+    "photo.title":"Search by photo","photo.desc":"Drop a screenshot of the fit — we'll match it against the catalog.","photo.drop":"Drop an image here, or click to upload","photo.soon":"Visual search is coming with Plug+ — for now, paste a link or search by name.",
+    "flux.fetching":"opening the clip","flux.reading":"reading comments","flux.matching":"matching brands","flux.uploading":"uploading","flux.scanning":"scanning the fit","flux.done":"all done",
+    "photo.searching":"Matching the image…","photo.found":"Visual matches","photo.exact":"exact match","photo.none":"No visual matches — try a clearer crop of the item.","photo.add":"Add top match to database",
+    "items.title":"What's in this fit","items.sub":"People asked about different pieces — here's each one.","items.alt":"also suggested",
+    "cat.jeans":"Jeans / pants","cat.shoes":"Shoes","cat.belt":"Belt","cat.shirt":"Shirt / flannel","cat.jacket":"Jacket / hoodie","cat.knit":"Knitwear","cat.hat":"Hat","cat.bag":"Bag","cat.scarf":"Scarf","cat.glasses":"Glasses","cat.jewelry":"Jewellery","cat.watch":"Watch",
+    "items.add":"Add all to database","items.added":"{n} pieces added ✦",
+    "spot.added":"Added to the database","spot.added_desc":"This brand is now searchable for everyone.","spot.addbtn":"Add to database","spot.visit":"Visit brand","spot.nolink":"No verified shop yet","spot.new":"New brand","db.added_toast":"{b} added to the database ✦",
+    "spot.title":"Spot the brand","spot.desc":"Paste a TikTok link — we read the comments and figure out the brand.","spot.ph":"https://www.tiktok.com/@…","spot.btn":"Identify the brand","spot.loading":"Reading the comments…","spot.found":"We think it's","spot.conf":"confidence","spot.unknown":"Not in our catalog yet — likely a small brand","spot.none.title":"No brand in the text yet","spot.none.desc":"Nobody named it in the comments. Post it to the community and someone will.","spot.view":"Search this brand","spot.again":"Try another link","spot.community":"Post to the community","spot.error":"Couldn't read that link. Check it's a TikTok URL and try again.","spot.cached":"from cache · free","spot.comments":"comments read","spot.left":"free look-ups left this month","spot.limit.title":"Out of free look-ups","spot.limit.desc":"You've used your 5 free TikTok look-ups this month. Go unlimited with Plug+.","spot.limit.cta":"Go unlimited — Plug+"
+  },
+  pl:{
+    "search.ph":"Szukaj marek, ubrań, stylów…",
+    "nav.submit":"Wrzuć znalezisko",
+    "hero.fit":"ciuch.",
+    "hero.sub":"Widziałeś kurtkę w rolce i musisz ją mieć? Przeszukaj bazę — duże marki i małe brandy z Instagrama w jednym miejscu.",
+    "hero.ph":"Wklej link do rolki albo wpisz „brązowy skórzany bomber”…",
+    "hero.cta":"Szukaj",
+    "hero.trending":"Na czasie:",
+    "stat.items":"ubrań w bazie",
+    "stat.brands":"marek — 70% to małe brandy",
+    "stat.pending":"znalezisk czeka na rozpoznanie",
+    "feed.title":"Feed",
+    "watch.on":"Powiadom mnie","watch.off":"Obserwujesz","watch.added":"Damy znać, gdy wróci albo stanieje","watch.removed":"Przestajesz obserwować",
+    "alerts.title":"Twoje alerty","alerts.none":"Brak alertów. Zaobserwuj rzecz, a damy znać gdy stanieje albo wróci na stan.","alerts.price":"spadek ceny","alerts.restock":"wróciło na stan","alerts.watching":"obserwujesz {n} rzeczy","alerts.nav":"Alerty",
+    "board.title":"Najlepsi łowcy","board.sub":"Potwierdzone rozpoznania w tym sezonie. Każda trafna odpowiedź się liczy.","board.you":"ty","board.ids":"rozpoznań","board.pts":"pkt","board.rank":"#",
+    "drop.title":"Drop tygodnia","drop.sub":"Dziesięć marek, których pewnie jeszcze nie znasz. Nowy zestaw w każdy poniedziałek.","drop.week":"tydzień {n}","drop.email":"twoj@email.com","drop.join":"Chcę w każdy poniedziałek","drop.joined":"Jesteś na liście ✦","drop.bad":"Ten adres wygląda źle.",
+    "feed.open":"Przeglądaj cały feed —","feed.more":"Pokaż więcej","feed.collapse":"Zwiń feed",
+    "brand.back":"Wróć","brand.shop":"Wejdź do sklepu","brand.pieces":"rzeczy","brand.nopieces":"Brak produktów w bazie — wejdź do sklepu, żeby zobaczyć wszystko.","brand.missing":"Nie mamy jeszcze tej marki.",
+    "item.more":"Więcej od tej marki","item.missing":"Nie ma takiej rzeczy.",
+    "tilt.kicker":"Wklej link. Masz cały outfit.","tilt.title":"Każda część, każda marka",
+    "vibes.title":"Szukaj po klimacie","vibes.clear":"Wyczyść ✕",
+    "featured.title":"Polecane","featured.tag":"Sponsorowane — marki płacą za miejsce tutaj","badge.featured":"Polecane",
+    "tab.feed":"Feed","tab.search":"Szukaj","tab.spot":"Wrzuć","tab.id":"Rozpoznaj","tab.saved":"Zapisane",
+    "toast.saved":"Zapisane ubrania trafią tu — wkrótce",
+    "plus.nav":"Plug+","plus.badge":"PLUG+",
+    "plus.title":"Odblokuj całego Pluga","plus.sub":"Przeglądanie, szukanie, wrzucanie znalezisk i rozpoznawanie są za darmo — na zawsze. Plug+ to opcje dla wymagających.",
+    "plus.f1":"Nielimitowane wyszukiwania z TikToka (za darmo: 5/mies.)",
+    "plus.f2":"Alerty o dostępności i spadkach cen",
+    "plus.f3":"Nielimitowane zapisy i tablice",
+    "plus.f4":"Priorytet rozpoznania — bez kolejki",
+    "plus.f5":"Znajdź ze zdjęcia: wyszukiwanie wizualne — wcześniejszy dostęp",
+    "plus.f6":"Bez reklam + ekskluzywne zniżki",
+    "plus.f7":"Spersonalizowany feed „Dla Ciebie” + filtry pro",
+    "plus.monthly":"Miesięcznie","plus.mo.per":"za miesiąc","plus.mo.cta":"Wybieram miesięczny",
+    "plus.life":"Founder · Na zawsze","plus.life.per":"jednorazowo · płacisz raz","plus.life.note":"Zostało tylko 500 miejsc","plus.life.badge":"NAJLEPSZA CENA","plus.life.cta":"Zostań founderem",
+    "tab.monthly":"miesięcznie","tab.yearly":"rocznie","tab.save":"Taniej o 61%",
+    "plan.plus":"Plug+","plan.per_mo":"za miesiąc","plan.billed_mo":"płatne co miesiąc · anulujesz kiedy chcesz",
+    "plan.billed_yr":"płatne {y} raz w roku","plan.life_title":"Founder · Na zawsze","plan.life_per":"jednorazowo — zostaje na zawsze",
+    "plan.cta_sub":"Biorę Plug+","plan.cta_life":"Zostań founderem","plan.popular":"NAJCZĘŚCIEJ WYBIERANE",
+    "plus.free":"Za darmo na zawsze: przeglądaj, szukaj, wrzucaj i rozpoznawaj.","plus.disclaimer":"Prototyp — brak realnej płatności.",
+    "toast.plus":"Prototyp — bez realnej płatności. Ale czujesz klimat ✦",
+    "auth.nav":"Zaloguj się","auth.signin":"Logowanie","auth.signup":"Rejestracja",
+    "auth.welcome_in":"Witaj z powrotem","auth.welcome_up":"Dołącz do The Plug",
+    "auth.sub_in":"Zaloguj się, by zapisywać znaleziska i dostawać alerty o dostępności.","auth.sub_up":"Załóż konto i zbuduj feed marek, które kochasz.",
+    "auth.google":"Kontynuuj z Google","auth.instagram":"Kontynuuj z Instagramem","auth.ig_hint":"Zaimportujemy marki, które już obserwujesz",
+    "auth.or":"albo","auth.email":"E-mail","auth.password":"Hasło","auth.confirm":"Powtórz hasło",
+    "auth.email_ph":"ty@email.com","auth.submit_in":"Zaloguj się","auth.submit_up":"Załóż konto",
+    "auth.to_up":"Nowy tutaj? Załóż konto","auth.to_in":"Masz już konto? Zaloguj się",
+    "auth.terms":"Kontynuując akceptujesz Regulamin i Prywatność.","auth.pw_short":"Hasło musi mieć min. 6 znaków","auth.pw_match":"Hasła się nie zgadzają",
+    "auth.done_title":"Jesteś w środku ✦","auth.done_desc":"Witaj w The Plug. Znajdźmy jakieś ciuchy.","auth.done_btn":"Zaczynamy",
+    "community.title":"Pomóż rozpoznać",
+    "community.sub":"Ktoś wypatrzył to w rolce, ale nikt nie zna marki. Kojarzysz? Otaguj i zgarnij punkty.",
+    "footer.tag":"Baza ciuchów, które wypatrzysz w sieci. Prototyp.",
+    "faq.title":"Pytania",
+    "faq.q1":"Jak działa znajdowanie marki z TikToka?",
+    "faq.a1":"Wklejasz link, a my czytamy opis, hashtagi i komentarze — łącznie z odpowiedziami twórcy. Zwykle ktoś już zapytał „skąd to?” i dostał odpowiedź. Układamy kandydatów według pewności i pokazujemy każdą część osobno, z marką i linkiem do sklepu.",
+    "faq.q2":"Czemu czasem nic nie znajduje?",
+    "faq.a2":"Jeśli nikt nie podał marki w tekście, nie ma czego czytać. Możesz wtedy wrzucić znalezisko do społeczności — zwykle ktoś rozpozna, a gdy dwie osoby wskażą tę samą markę, wynik jest potwierdzany i trafia do bazy.",
+    "faq.q3":"Ile kosztuje Plug+ i co daje?",
+    "faq.a3":"Przeglądanie, szukanie, wrzucanie znalezisk i rozpoznawanie są darmowe na zawsze. Plug+ to 14,99 zł miesięcznie, 69,99 zł rocznie albo 99,99 zł jednorazowo za dostęp Founder na zawsze. Dostajesz nielimitowane wyszukiwania z TikToka, alerty o dostępności i spadkach cen, nielimitowane zapisy, priorytet rozpoznania i brak reklam.",
+    "faq.q4":"Ile mam darmowych wyszukiwań?",
+    "faq.a4":"Pięć miesięcznie. Możesz zdobyć więcej, rozpoznając cudze znaleziska — każda potwierdzona odpowiedź to jedno dodatkowe wyszukiwanie, maksymalnie pięć tygodniowo.",
+    "faq.q5":"Skąd są produkty i zdjęcia?",
+    "faq.a5":"Prosto ze sklepów i publicznych profili marek. Każda pozycja linkuje do marki, więc zakup zawsze odbywa się u niej — sami niczego nie sprzedajemy.",
+    "faq.q6":"Prowadzę markę. Jak trafić do bazy albo na stronę główną?",
+    "faq.a6":"Dodanie do bazy jest darmowe — wyślij nam link do sklepu, a dopiszemy. Sekcja „Polecane” na stronie głównej to płatne miejsce, oznaczone jako sponsorowane, żeby nikogo nie wprowadzać w błąd.",
+    "faq.q7":"Co z moimi danymi?",
+    "faq.a7":"Przechowujemy konto, zapisane ubrania i wrzucone znaleziska. Zdjęcia, które wysyłasz, służą tylko do wykonania tego jednego wyszukiwania. Nie sprzedajemy danych osobowych. Możesz poprosić o usunięcie konta i wszystkiego, co jest z nim powiązane.",
+    "foot.product":"Produkt","foot.company":"Firma","foot.legal":"Prawne","foot.social":"Social",
+    "foot.search":"Szukaj","foot.vibes":"Klimaty","foot.spot":"Znajdź z linku","foot.plus":"Plug+",
+    "foot.about":"O nas","foot.brands":"Dla marek","foot.contact":"Kontakt","foot.faq":"FAQ",
+    "foot.terms":"Regulamin","foot.privacy":"Polityka prywatności","foot.cookies":"Cookies","foot.rules":"Zasady społeczności",
+    "filter.all":"Wszystko","filter.indie":"Tylko małe marki","filter.big":"Duże marki",
+    "c.Jackets":"Kurtki","c.Denim":"Jeansy","c.Knitwear":"Bluzy / swetry","c.Tees":"Koszulki","c.Sneakers":"Buty","c.Bags":"Torby","c.Accessories":"Dodatki","c.Art":"Art / decor",
+    "detail.buy":"Kup teraz","detail.similar":"Znajdź podobne","detail.spotted":"Wypatrzone w","detail.price":"Cena","detail.category":"Kategoria","detail.type":"Typ marki","detail.avail":"Dostępność","detail.instock":"Dostępne","detail.indie":"Mała marka","detail.big":"Duża marka","detail.na":"Brak linku",
+    "identify.btn":"Wiem co to!","identify.count":"osób szuka",
+    "id.ph":"Nazwa marki albo @handle","id.send":"Wyślij","id.cancel":"Anuluj",
+    "id.thanks":"Dobra robota — dzięki!","id.reward":"+1 darmowe wyszukiwanie ✦","id.earned":"Masz teraz {n} darmowych wyszukiwań",
+    "id.hint":"Za każde trafne rozpoznanie dostajesz darmowe wyszukiwanie — maks {max} tygodniowo.",
+    "id.progress":"{n}/{max} w tym tygodniu","id.capped":"Limit tygodniowy wyczerpany","id.capped_desc":"Dzięki — ale masz już {max} w tym tygodniu. Odnowi się w poniedziałek.","id.capped_toast":"Limit tygodniowy wyczerpany — odnowa w poniedziałek",
+    "id.pending":"Czekamy na potwierdzenie","id.pending_desc":"Jesteś pierwszy z {b}. Gdy ktoś się zgodzi, potwierdzamy i dostajesz wyszukiwanie.",
+    "id.confirmed":"Potwierdzone przez {n} osoby","id.confirmed_desc":"Czyli {b} — dodane do bazy.",
+    "id.votes":"{n} osoba typuje {b}","id.agree":"Zgadzam się","id.confirm_toast":"{b} potwierdzone ✦ +1 wyszukiwanie",
+    "id.rule":"Nagroda odblokowuje się, gdy dwie osoby podadzą tę samą markę.",
+    "submit.title":"Wrzuć znalezisko","submit.desc":"Wklej link do rolki albo screena. Społeczność pomoże ustalić, co to.","submit.drop":"Przeciągnij screena tutaj albo kliknij, by dodać","submit.link":"Link do rolki / TikToka","submit.link.ph":"https://instagram.com/reel/…","submit.note":"Czego szukasz? (opcjonalnie)","submit.note.ph":"„Ta oversize'owa jeansowa kurtka w 0:12”","submit.send":"Wrzuć do społeczności","submit.done.title":"Jesteś w kolejce","submit.done.desc":"Twoje znalezisko jest na tablicy. Damy znać, gdy tylko ktoś otaguje markę.","submit.done.btn":"Spoko",
+    "d.link":"Link","d.search":"Szukaj","d.photo":"Zdjęcie","d.feed":"Feed","d.vibes":"Klimaty","d.id":"Rozpoznaj","d.saved":"Zapisane","d.plus":"Plug+","d.account":"Konto",
+    "dock.link":"Z linku","dock.search":"Szukaj po nazwie","dock.photo":"Szukaj po zdjęciu","dock.feed":"Feed","dock.vibes":"Klimaty","dock.id":"Rozpoznaj","dock.saved":"Zapisane","dock.plus":"Plug+","dock.account":"Konto",
+    "photo.title":"Szukaj po zdjęciu","photo.desc":"Wrzuć screena ciucha — dopasujemy go do katalogu.","photo.drop":"Przeciągnij zdjęcie albo kliknij, by dodać","photo.soon":"Wyszukiwanie wizualne będzie w Plug+ — na razie wklej link albo szukaj po nazwie.",
+    "flux.fetching":"otwieram film","flux.reading":"czytam komentarze","flux.matching":"dopasowuję marki","flux.uploading":"wysyłam zdjęcie","flux.scanning":"skanuję ciuch","flux.done":"gotowe",
+    "photo.searching":"Dopasowuję zdjęcie…","photo.found":"Dopasowania wizualne","photo.exact":"dokładne trafienie","photo.none":"Brak dopasowań — spróbuj wyraźniejszego kadru.","photo.add":"Dodaj najlepsze trafienie do bazy",
+    "items.title":"Co jest w tym ficie","items.sub":"Ludzie pytali o różne części — tu masz każdą osobno.","items.alt":"typowane też",
+    "cat.jeans":"Jeansy / spodnie","cat.shoes":"Buty","cat.belt":"Pasek","cat.shirt":"Koszula / flanela","cat.jacket":"Kurtka / bluza","cat.knit":"Sweter","cat.hat":"Czapka","cat.bag":"Torba","cat.scarf":"Szalik","cat.glasses":"Okulary","cat.jewelry":"Biżuteria","cat.watch":"Zegarek",
+    "items.add":"Dodaj wszystko do bazy","items.added":"Dodano {n} rzeczy ✦",
+    "spot.added":"Dodano do bazy","spot.added_desc":"Ta marka jest już wyszukiwalna dla wszystkich.","spot.addbtn":"Dodaj do bazy","spot.visit":"Wejdź na markę","spot.nolink":"Brak pewnego sklepu","spot.new":"Nowa marka","db.added_toast":"{b} dodana do bazy ✦",
+    "spot.title":"Namierz markę","spot.desc":"Wklej link do TikToka — czytamy komentarze i ustalamy markę.","spot.ph":"https://www.tiktok.com/@…","spot.btn":"Rozpoznaj markę","spot.loading":"Czytam komentarze…","spot.found":"Naszym zdaniem to","spot.conf":"pewności","spot.unknown":"Jeszcze nie w bazie — pewnie mała marka","spot.none.title":"Brak marki w tekście","spot.none.desc":"Nikt jej nie nazwał w komentarzach. Wrzuć do społeczności, ktoś rozpozna.","spot.view":"Szukaj tej marki","spot.again":"Inny link","spot.community":"Wrzuć do społeczności","spot.error":"Nie udało się odczytać linku. Sprawdź, czy to adres TikToka i spróbuj znów.","spot.cached":"z cache · za darmo","spot.comments":"komentarzy przeczytanych","spot.left":"darmowych wyszukiwań w tym miesiącu","spot.limit.title":"Koniec darmowych wyszukiwań","spot.limit.desc":"Wykorzystałeś 5 darmowych wyszukiwań z TikToka w tym miesiącu. Bez limitu w Plug+.","spot.limit.cta":"Bez limitu — Plug+"
+  }
+};
+let lang = "en";
+const t = (k)=> (I18N[lang][k] ?? I18N.en[k] ?? k);
+
+function applyI18n(){
+  document.documentElement.lang = lang;
+  document.querySelectorAll("[data-i18n]").forEach(el=> el.textContent = t(el.dataset.i18n));
+  document.querySelectorAll("[data-i18n-ph]").forEach(el=> el.placeholder = t(el.dataset.i18nPh));
+  renderTrending(); renderFilters(); renderVibes(); renderFeatured(); render(); renderPending(); renderTilt(); renderFaq(); renderFooter(); renderBoard(); renderDrop(); initDropForm();
+  if(document.getElementById("dockInner")) buildDock();
+  updateRewardHint();
+}
+
+/* ============ mock data ============ */
+const TRENDING = ["Adidas Samba","brown leather bomber","Corteiz","baggy jeans","knit balaclava","Aimé Leon Dore"];
+const CATS = ["Jackets","Denim","Knitwear","Tees","Sneakers","Bags","Accessories","Art"];
+
+const IMG = (seed)=>`https://picsum.photos/seed/${seed}/600/800`;
+// topical fashion photos by category (temporary, until real brand shots)
+const CAT_IMG={Jackets:"jacket,fashion",Denim:"trousers,fashion",Knitwear:"sweater,fashion",Tees:"tshirt,fashion",Sneakers:"sneakers,shoes",Bags:"handbag,fashion",Accessories:"accessory,fashion"};
+const STYLE_IMG={streetwear:"streetwear",minimalist:"minimal,fashion",vintage:"vintage,clothing",gorpcore:"outdoor,jacket",classy:"suit,fashion",techwear:"black,jacket"};
+const VIBE_PHOTO={streetwear:"/assets/photos/crtz116.jpg",minimalist:"/assets/photos/sdn113.jpg",vintage:"/assets/photos/scuf105.jpg",gorpcore:"/assets/photos/crtz119.jpg",classy:"/assets/photos/mn1.jpg",techwear:"/assets/photos/scuf103.jpg"};
+// imported products carry a remote shop image; curated ones a local file
+const PHOTO=(it)=> it.photo ? it.photo : `https://loremflickr.com/600/800/${CAT_IMG[it.cat]||"fashion"}?lock=${it.id}`;
+
+const ITEMS = [
+  // --- REAL products pulled live from each brand's own shop ---
+  {id:1, brand:"Scuffers", name:"Raw Light Blue Hoodie", cat:"Knitwear", style:"streetwear", price:"€79", indie:true, src:"@scuffers", likes:1237, photo:"/assets/photos/scuf101.jpg", link:"https://scuffers.com/products/raw-light-blue-hoodie", seed:"s1"},
+  {id:2, brand:"Scuffers", name:"Raw Butter Hoodie", cat:"Knitwear", style:"streetwear", price:"€79", indie:true, src:"@scuffers", likes:874, photo:"/assets/photos/scuf102.jpg", link:"https://scuffers.com/products/raw-butter-hoodie", seed:"s2"},
+  {id:3, brand:"Scuffers", name:"Bimbobox Dark Green Jacket", cat:"Jackets", style:"streetwear", price:"€89", indie:true, src:"@scuffers", likes:1311, photo:"/assets/photos/scuf103.jpg", link:"https://scuffers.com/products/bimbobox-dark-green-jacket", seed:"s3"},
+  {id:4, brand:"Scuffers", name:"Bimbobox Ecru Jacket", cat:"Jackets", style:"streetwear", price:"€89", indie:true, src:"@scuffers", likes:948, photo:"/assets/photos/scuf104.jpg", link:"https://scuffers.com/products/bimbobox-ecru-jacket", seed:"s4"},
+  {id:5, brand:"Scuffers", name:"SCFF Camo Knit Zipper", cat:"Knitwear", style:"streetwear", price:"€89", indie:true, src:"@scuffers", likes:685, photo:"/assets/photos/scuf105.jpg", link:"https://scuffers.com/products/scff-camo-knit-zipper", seed:"s5"},
+  {id:6, brand:"Unfounded Studios", name:"England Track Pants", cat:"Denim", style:"streetwear", price:"£43", indie:true, src:"@unfoundedstudios", likes:1422, photo:"/assets/photos/unf106.jpg", link:"https://unfoundedstudios.com/products/england-track-pants", seed:"s6"},
+  {id:7, brand:"Unfounded Studios", name:"England Polo", cat:"Tees", style:"streetwear", price:"£35", indie:true, src:"@unfoundedstudios", likes:959, photo:"/assets/photos/unf107.jpg", link:"https://unfoundedstudios.com/products/england-polo", seed:"s7"},
+  {id:8, brand:"Unfounded Studios", name:"Bird Shorts — Grey", cat:"Denim", style:"streetwear", price:"£27", indie:true, src:"@unfoundedstudios", likes:596, photo:"/assets/photos/unf108.jpg", link:"https://unfoundedstudios.com/products/bird-grey-shorts", seed:"s8"},
+  {id:9, brand:"Unfounded Studios", name:"Bird Joggers — Grey", cat:"Denim", style:"streetwear", price:"£27", indie:true, src:"@unfoundedstudios", likes:733, photo:"/assets/photos/unf109.jpg", link:"https://unfoundedstudios.com/products/bird-grey-joggers", seed:"s9"},
+  {id:10, brand:"Unfounded Studios", name:"Bird Hoodie — Grey", cat:"Knitwear", style:"streetwear", price:"£35", indie:true, src:"@unfoundedstudios", likes:1570, photo:"/assets/photos/unf110.jpg", link:"https://unfoundedstudios.com/products/bird-grey-hoodie", seed:"s10"},
+  {id:11, brand:"Society de Nobodies", name:"Sleevles X Cut Off Hoodie", cat:"Knitwear", style:"minimalist", price:"€95", indie:true, src:"@society.de.nobodies", likes:1607, photo:"/assets/photos/sdn111.jpg", link:"https://societydenobodies.com/products/sleevles-x-cut-off-hoodie", seed:"s11"},
+  {id:12, brand:"Society de Nobodies", name:"Waxxed Metal Logo Cap", cat:"Accessories", style:"minimalist", price:"€60", indie:true, src:"@society.de.nobodies", likes:644, photo:"/assets/photos/sdn112.jpg", link:"https://societydenobodies.com/products/black-cut-off-waxxed-metal-logo-cap", seed:"s12"},
+  {id:13, brand:"Society de Nobodies", name:"White Slub Cotton Sister Cut Tee", cat:"Tees", style:"minimalist", price:"€50", indie:true, src:"@society.de.nobodies", likes:981, photo:"/assets/photos/sdn113.jpg", link:"https://societydenobodies.com/products/white-slub-cotton-sister-cut-tee", seed:"s13"},
+  {id:14, brand:"Society de Nobodies", name:"No Name Mesh Top", cat:"Tees", style:"minimalist", price:"€70", indie:true, src:"@society.de.nobodies", likes:718, photo:"/assets/photos/sdn114.jpg", link:"https://societydenobodies.com/products/no-name-mesh-top", seed:"s14"},
+  {id:15, brand:"Society de Nobodies", name:"Cologne Cut Denim", cat:"Denim", style:"minimalist", price:"€220", indie:true, src:"@society.de.nobodies", likes:1755, photo:"/assets/photos/sdn115.jpg", link:"https://societydenobodies.com/products/cologne-cut-denim-sample", seed:"s15"},
+  {id:16, brand:"Corteiz", name:"Island Puff Print Zip Hoodie", cat:"Knitwear", style:"streetwear", price:"£120", indie:false, src:"@corteiz", likes:3792, photo:"/assets/photos/crtz116.jpg", link:"https://crtz.xyz/products/alc-puff-zip-hoodie", seed:"s16"},
+  {id:17, brand:"Corteiz", name:"Open Mesh Panel Jersey", cat:"Tees", style:"streetwear", price:"£80", indie:false, src:"@corteiz", likes:2829, photo:"/assets/photos/crtz117.jpg", link:"https://crtz.xyz/products/open-mesh-panel-jersey", seed:"s17"},
+  {id:18, brand:"Corteiz", name:"Handwritten Baggy Jeans", cat:"Denim", style:"streetwear", price:"£130", indie:false, src:"@corteiz", likes:4866, photo:"/assets/photos/crtz118.jpg", link:"https://crtz.xyz/products/handwritten-baggy-jeans-midwash-indigo", seed:"s18"},
+  {id:19, brand:"Corteiz", name:"Dual-Layer Litework Jacket", cat:"Jackets", style:"streetwear", price:"£150", indie:false, src:"@corteiz", likes:2903, photo:"/assets/photos/crtz119.jpg", link:"https://crtz.xyz/products/dual-layer-litework-jacket-cream", seed:"s19"},
+  {id:20, brand:"Corteiz", name:"Handwritten Denim Jacket", cat:"Jackets", style:"streetwear", price:"£140", indie:false, src:"@corteiz", likes:3940, photo:"/assets/photos/crtz120.jpg", link:"https://crtz.xyz/products/handwritten-denim-jacket-midwash-indigo", seed:"s20"},
+  // --- Maison North: real photos from their Instagram (their shop has no public feed) ---
+  {id:21, brand:"Maison North", name:"Le Beau Jeu Knit", cat:"Knitwear", style:"minimalist", price:"$85", indie:true, src:"@maisonnorthofficial", likes:1420, photo:"/assets/photos/mn1.jpg", link:"https://maisonnorth.shop", seed:"mn21"},
+  {id:22, brand:"Maison North", name:"Lately Overshirt", cat:"Jackets", style:"minimalist", price:null, indie:true, src:"@maisonnorthofficial", likes:760, photo:"/assets/photos/mn2.jpg", link:"https://maisonnorth.shop", seed:"mn22"},
+  {id:23, brand:"Maison North", name:"Custom 1-of-1 Hoodie", cat:"Knitwear", style:"streetwear", price:"$85", indie:true, src:"@maisonnorthofficial", likes:1120, photo:"/assets/photos/mn3.jpg", link:"https://maisonnorth.shop", seed:"mn23"},
+];
+const OLD_ITEMS = [
+  {id:101, brand:"Corteiz", name:"Guerillaz Cargo", cat:"Denim", style:"streetwear", price:"£110", indie:false, src:"@crtz.fits", likes:3210, img:"/assets/photos/1.jpg", seed:"cz1"},
+  {id:2, brand:"Maison North", name:"Le Beau Jeu Knit", cat:"Knitwear", style:"minimalist", price:"€120", indie:true, src:"@maisonnorthofficial", likes:1420, photo:"/assets/photos/mn1.jpg", seed:"mn2"},
+  {id:3, brand:"Unfounded Studios", name:"Nation Track Pants", cat:"Denim", style:"streetwear", price:"£50", indie:true, src:"@unfoundedstudios", likes:870, photo:"/assets/photos/uf1.jpg", seed:"uf3"},
+  {id:4, brand:"Society de Nobodies", name:"2026 Classic Logo Tee", cat:"Tees", style:"minimalist", price:"€65", indie:true, src:"@society.de.nobodies", likes:980, photo:"/assets/photos/sdn1.jpg", seed:"sn4"},
+  {id:5, brand:"Arc'teryx", name:"Beta LT Shell", cat:"Jackets", style:"gorpcore", price:"1 899 zł", indie:false, src:"@gorptrekker", likes:2110, img:"/assets/photos/5.jpg", seed:"ax5"},
+  {id:6, brand:"Éternel Studio", name:"Double-Zip Tech Jacket", cat:"Jackets", style:"techwear", price:"€220", indie:true, src:"@eternel.studio", likes:640, img:"/assets/photos/6.jpg", seed:"et6"},
+  {id:7, brand:"Aimé Leon Dore", name:"Suede Bowling Bag", cat:"Bags", style:"classy", price:"$250", indie:false, src:"@nycfits", likes:1990, img:"/assets/photos/7.jpg", seed:"ald7"},
+  {id:8, brand:"Nord Atelier", name:"Pleated Wide Trousers", cat:"Denim", style:"classy", price:"€150", indie:true, src:"@nord.atelier", likes:720, img:"/assets/photos/8.jpg", seed:"na8"},
+  {id:9, brand:"Salomon", name:"XT-6 Trainers", cat:"Sneakers", style:"gorpcore", price:"899 zł", indie:false, src:"@techwearclips", likes:2780, img:"/assets/photos/9.jpg", seed:"sl9"},
+  {id:10, brand:"Off—Season", name:"Distressed Mohair Knit", cat:"Knitwear", style:"vintage", price:null, indie:true, src:"@offseason.wear", likes:560, img:"/assets/photos/10.jpg", seed:"os10"},
+  {id:11, brand:"Stone Island", name:"Ghost Overshirt", cat:"Jackets", style:"streetwear", price:"€395", indie:false, src:"@stoneheads", likes:1830, img:"/assets/photos/11.jpg", seed:"si11"},
+  {id:12, brand:"Cendre", name:"Nylon Crossbody", cat:"Bags", style:"minimalist", price:"€90", indie:true, src:"@cendre.goods", likes:410, img:"/assets/photos/12.jpg", seed:"ce12"},
+  {id:13, brand:"Maison North", name:"Custom 1-of-1 Hoodie", cat:"Knitwear", style:"streetwear", price:"$85", indie:true, src:"@maisonnorthofficial", likes:1120, photo:"/assets/photos/mn3.jpg", seed:"mn13"},
+  {id:14, brand:"Maison North", name:"Lately Overshirt", cat:"Jackets", style:"minimalist", price:"€160", indie:true, src:"@maisonnorthofficial", likes:760, photo:"/assets/photos/mn2.jpg", seed:"mn14"},
+  {id:15, brand:"Society de Nobodies", name:"Einsamkeit SS26", cat:"Tees", style:"minimalist", price:"€70", indie:true, src:"@society.de.nobodies", likes:640, photo:"/assets/photos/sdn2.jpg", seed:"sn15"},
+  {id:16, brand:"Society de Nobodies", name:"Waxxed Logo Cap", cat:"Accessories", style:"minimalist", price:"€35", indie:true, src:"@society.de.nobodies", likes:520, photo:"/assets/photos/sdn3.jpg", seed:"sn16"},
+  {id:17, brand:"Unfounded Studios", name:"World Cup Polo", cat:"Tees", style:"streetwear", price:"£43", indie:true, src:"@unfoundedstudios", likes:930, photo:"/assets/photos/uf3.jpg", seed:"uf17"},
+  // brands pulled from the user's own Facebook follows
+  {id:19, brand:"Scuffers", name:"Baggy Wide Jean", cat:"Denim", style:"streetwear", price:"€75", indie:true, src:"@scuffers", likes:610, link:"https://scuffers.com", seed:"sc19"},
+];
+
+// `votes` = what the community has already guessed. A guess needs ID_CONSENSUS
+// matching votes before it counts as confirmed and pays out a look-up.
+const PENDING = [
+  {id:101, cat:"Jackets", src:"@grailhunt", note:"cream workwear jacket @ 0:06", looking:34, photo:"/assets/photos/scuf104.jpg", seed:"pend1", votes:{"scuffers":{label:"Scuffers",n:1}}},
+  {id:102, cat:"Tees", src:"@runitback", note:"mesh panel jersey, no logo", looking:51, photo:"/assets/photos/crtz117.jpg", seed:"pend2", votes:{}},
+  {id:103, cat:"Knitwear", src:"@slowfashion", note:"cut-off sleeveless hoodie", looking:19, photo:"/assets/photos/sdn111.jpg", seed:"pend3", votes:{"societydenobodies":{label:"Society de Nobodies",n:1}}},
+  {id:104, cat:"Denim", src:"@itbag", note:"grey bird-print joggers", looking:72, photo:"/assets/photos/unf109.jpg", seed:"pend4", votes:{}},
+];
+
+const STYLES = ["streetwear","minimalist","vintage","gorpcore","classy","techwear"];
+let filterStyle = null;
+
+/* ---- the full imported catalog: 170 brands / 1000+ real products ----
+   The feed only shows a readable slice; search covers everything. */
+const IMPORTED = (typeof CATALOG!=="undefined") ? CATALOG : [];
+const FEED_SET = new Set((typeof FEED_IDS!=="undefined") ? FEED_IDS : []);
+const ALL_BRANDS = (typeof BRANDS!=="undefined") ? BRANDS : [];
+function everything(){ return ITEMS.concat(IMPORTED); }
+
+const FEATURED = [21, 11, 3];   // indie brands paying for a homepage slot
+
+/* ============ state ============ */
+let filterMode = "all";   // all | indie | big
+let filterCat = null;
+let query = "";
+const PREVIEW_COUNT = 24;   // homepage taste, so the page stays scrollable
+const PAGE = 48;            // how many more arrive per click
+let feedOpen = false, feedShown = PAGE;
+
+/* ============ render helpers ============ */
+function renderTrending(){
+  const box = document.querySelector(".trending");
+  box.querySelectorAll(".tag").forEach(n=>n.remove());
+  TRENDING.forEach(term=>{
+    const b=document.createElement("button");
+    b.className="tag"; b.textContent=term;
+    b.onclick=()=>{ query=term; document.getElementById("heroSearch").value=term; document.getElementById("navSearch").value=term; render(); document.getElementById("grid").scrollIntoView({behavior:"smooth",block:"start"});};
+    box.appendChild(b);
+  });
+}
+
+/* land just under the sticky filter bar, not behind it */
+function scrollToFeed(){
+  // measure after the grid has been repainted, otherwise the target moves
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    const head=document.getElementById("feedTitle")||document.getElementById("grid");
+    if(!head) return;
+    const bar=document.querySelector(".toolbar");
+    const nav=document.querySelector("header.nav");
+    const offset=(bar?bar.offsetHeight:0)+(nav?nav.offsetHeight:0)+14;
+    const y=head.getBoundingClientRect().top+window.scrollY-offset;
+    window.scrollTo({top:Math.max(0,y),behavior:"smooth"});
+  }));
+}
+
+function renderFilters(){
+  const bar=document.getElementById("filterBar");
+  bar.innerHTML="";
+  const mk=(label,active,fn,extra="")=>{const b=document.createElement("button");b.className="chip "+extra+(active?" on":"");b.textContent=label;b.onclick=fn;return b;};
+  // clearing "All" also drops any vibe, so a category never silently
+  // collapses to one result because a style filter was still on
+  bar.appendChild(mk(t("filter.all"), !filterCat&&!filterStyle, ()=>{
+    filterCat=null;filterStyle=null;render();renderFilters();renderVibes();}));
+  const sep=document.createElement("div");sep.className="chip-sep";bar.appendChild(sep);
+  CATS.forEach(c=> bar.appendChild(mk(t("c."+c), filterCat===c, ()=>{
+    filterCat=filterCat===c?null:c;
+    render();renderFilters();
+    if(filterCat) scrollToFeed();      // take me to the jackets, don't make me hunt
+  })));
+  if(filterStyle){
+    const s=document.createElement("div");s.className="chip-sep";bar.appendChild(s);
+    bar.appendChild(mk(filterStyle+" ✕", true, ()=>{filterStyle=null;render();renderFilters();renderVibes();}));
+  }
+}
+
+function matchItem(it){
+  if(filterCat && it.cat!==filterCat) return false;
+  if(filterStyle && it.style!==filterStyle) return false;
+  if(query){
+    const q=query.toLowerCase().replace(/^@/,"");
+    const b=ALL_BRANDS.find(x=>x.brand===it.brand);
+    const hay=(it.brand+" "+it.name+" "+it.cat+" "+it.src+" "+(it.style||"")+" "+
+               (b?b.niche+" "+b.country:"")).toLowerCase();
+    if(!hay.includes(q)) return false;
+  }
+  return true;
+}
+
+function cardHTML(it, featured){
+  const star = `<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.8 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z"/></svg>`;
+  const badge = featured ? `<span class="badge featured">${star}${t("badge.featured")}</span>`
+              : it.isNew ? `<span class="badge newbrand">${t("spot.new")}</span>`
+              : it.indie ? `<span class="badge indie">indie</span>` : `<span class="badge big">brand</span>`;
+  const price = it.price ? `<span class="price">${it.price}</span>` : `<span class="price na">${t("detail.na")}</span>`;
+  return `<div class="card reveal" data-id="${it.id}">
+    <div class="ph">
+      <img loading="lazy" src="${PHOTO(it)}" onerror="this.onerror=null;this.src='${IMG(it.seed)}'" alt="${it.brand} ${it.name}">
+      ${badge}
+      <span class="src-badge">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+        ${it.src}
+      </span>
+    </div>
+    <div class="body">
+      <div class="brand">${it.brand}</div>
+      <div class="name">${it.name}</div>
+      <div class="row">${price}
+        <span class="likes">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 1 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg>
+          ${it.likes.toLocaleString()}
+        </span>
+      </div>
+    </div>
+  </div>`;
+}
+
+function brandCardHTML(b){
+  const link=b.site||(b.handle?"https://instagram.com/"+b.handle.replace("@",""):"#");
+  const initials=b.brand.split(/\s+/).slice(0,2).map(w=>w[0]).join("").toUpperCase();
+  return `<a class="card brand-card reveal" href="/brand/${slugify(b.brand)}" data-route>
+    <div class="bc-top"><span class="bc-mark">${esc(initials)}</span>
+      <span class="badge indie" style="position:static">${b.kind==="art-decor"?"art":"brand"}</span></div>
+    <div class="body">
+      <div class="brand">${esc(b.country||"")}</div>
+      <div class="name" style="white-space:normal">${esc(b.brand)}</div>
+      <div class="bc-niche">${esc(b.niche||"")}</div>
+      <div class="bc-go">${b.handle?esc(b.handle):""} ↗</div>
+    </div></a>`;
+}
+
+function render(){
+  const grid=document.getElementById("grid");
+  const searching = !!(query || filterStyle || filterCat);
+  // browsing → curated slice; searching → the whole 1000+ catalog
+  // opened feed browses the entire catalog, the homepage teaser stays curated
+  const pool = (searching || feedOpen)
+    ? everything()
+    : ITEMS.concat(IMPORTED.filter(it=>FEED_SET.has(it.id)));
+  const full=pool.filter(it=>!FEATURED.includes(it.id)).filter(matchItem);
+  // the homepage shows a taste of the feed; the rest loads when you ask for it
+  const limit = feedOpen ? feedShown : PREVIEW_COUNT;
+  const list=full.slice(0,limit);
+  // brands without a live catalog still need to be findable
+  let brandCards="";
+  if(query){
+    const q=query.toLowerCase().replace(/^@/,"");
+    const shown=new Set(list.map(i=>i.brand));
+    brandCards=ALL_BRANDS
+      .filter(b=>!shown.has(b.brand) &&
+        (b.brand+" "+b.niche+" "+b.country+" "+(b.handle||"")).toLowerCase().includes(q))
+      .slice(0,24).map(brandCardHTML).join("");
+  }
+  grid.innerHTML = brandCards + (list.map(cardHTML).join("") ||
+    (brandCards?"":`<p style="color:var(--faint)">Nothing here — try another filter.</p>`));
+
+  // "open the feed" / "load more" / "collapse" control under the grid
+  const more=document.getElementById("feedMore");
+  const remaining=full.length-list.length;
+  if(!feedOpen){
+    const total=everything().filter(it=>!FEATURED.includes(it.id)).filter(matchItem).length;
+    more.innerHTML=`<button class="btn btn-primary" style="padding:13px 26px">
+      ${t("feed.open")} <b style="opacity:.7">${total}</b></button>`;
+    more.firstElementChild.onclick=()=>{feedOpen=true;feedShown=PAGE;render();};
+  } else if(feedOpen && remaining>0){
+    more.innerHTML=`<button class="btn btn-ghost" style="padding:13px 26px">${t("feed.more")}</button>
+      <div class="feed-count">${list.length} / ${full.length}</div>`;
+    more.firstElementChild.onclick=()=>{feedShown+=PAGE;render();};
+  } else if(feedOpen){
+    more.innerHTML=`<button class="btn btn-ghost" style="padding:11px 22px">${t("feed.collapse")}</button>
+      <div class="feed-count">${full.length} / ${full.length}</div>`;
+    more.firstElementChild.onclick=()=>{feedOpen=false;feedShown=PAGE;render();
+      document.getElementById("grid").scrollIntoView({behavior:"smooth",block:"start"});};
+  } else more.innerHTML="";
+  // show how many matched, not how many happen to be rendered
+  document.getElementById("feedCount").textContent =
+    (list.length<full.length ? `${list.length} / ${full.length}` : `${full.length}`)
+    + " " + (lang==="pl"?"wyników":"results");
+  grid.querySelectorAll(".card[data-id]").forEach(c=> c.onclick=()=>go("/item/"+c.dataset.id));
+  observeReveal();
+}
+
+const VIBE_IMG={streetwear:1,minimalist:2,vintage:10,gorpcore:5,classy:7,techwear:6};
+function renderFaq(){
+  const box=document.getElementById("faqList"); if(!box) return;
+  const n=7;
+  box.innerHTML=Array.from({length:n},(_,i)=>i+1).map(i=>`
+    <div class="faq-item">
+      <button class="faq-q" type="button">
+        <span>${t("faq.q"+i)}</span>
+        <span class="pm"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M12 5v14M5 12h14"/></svg></span>
+      </button>
+      <div class="faq-a"><p>${t("faq.a"+i)}</p></div>
+    </div>`).join("");
+  box.querySelectorAll(".faq-item").forEach(it=>{
+    it.querySelector(".faq-q").onclick=()=>{
+      const open=it.classList.contains("open");
+      box.querySelectorAll(".faq-item").forEach(x=>x.classList.remove("open"));
+      if(!open) it.classList.add("open");
+    };
+  });
+}
+
+const SOCIAL={
+  instagram:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>',
+  tiktok:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 3c.4 2.4 1.9 4 4 4.3v3c-1.6.1-3-.4-4.3-1.3v6.3c0 3.6-2.6 6.2-6 6.2S3.6 18.9 3.6 15.4c0-3.3 2.5-5.9 5.8-6v3.1c-1.5.1-2.6 1.3-2.6 2.8 0 1.7 1.3 3 3 3s3-1.3 3-3.1V3z"/></svg>',
+  youtube:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 12s0-3.2-.4-4.7a2.5 2.5 0 0 0-1.8-1.8C18.3 5 12 5 12 5s-6.3 0-7.8.5A2.5 2.5 0 0 0 2.4 7.3C2 8.8 2 12 2 12s0 3.2.4 4.7c.2.9.9 1.6 1.8 1.8C5.7 19 12 19 12 19s6.3 0 7.8-.5a2.5 2.5 0 0 0 1.8-1.8C22 15.2 22 12 22 12ZM10 15V9l5.2 3-5.2 3Z"/></svg>',
+  x:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 3h3.2l-7 8 8.2 10h-6.4l-5-6.1L4.7 21H1.5l7.5-8.6L1.2 3h6.6l4.5 5.6L17.5 3Zm-1.1 16h1.8L7.7 4.8H5.8L16.4 19Z"/></svg>'
+};
+function renderFooter(){
+  const box=document.getElementById("footCols"); if(!box) return;
+  const y=document.getElementById("footYear"); if(y) y.textContent=new Date().getFullYear();
+  const cols=[
+    {h:"foot.product",links:[["foot.search","#grid"],["foot.vibes","#vibeRow"],["foot.spot","#spot"],["foot.plus","#plus"]]},
+    {h:"foot.company", links:[["foot.about","#"],["foot.brands","#"],["foot.contact","#"],["foot.faq","#faq"]]},
+    {h:"foot.legal",   links:[["foot.terms","#"],["foot.privacy","#"],["foot.cookies","#"],["foot.rules","#"]]},
+    {h:"foot.social",  links:[["Instagram","https://instagram.com","instagram"],["TikTok","https://tiktok.com","tiktok"],
+                              ["YouTube","https://youtube.com","youtube"],["X","https://x.com","x"]]}
+  ];
+  box.innerHTML=cols.map((c,i)=>`
+    <div class="foot-anim" style="transition-delay:${(0.1+i*0.1).toFixed(2)}s">
+      <h3>${t(c.h)}</h3>
+      <ul>${c.links.map(([label,href,ico])=>`
+        <li><a href="${href}"${href.startsWith("http")?' target="_blank" rel="noopener noreferrer"':""}>
+          ${ico?SOCIAL[ico]:""}${t(label)===label?label:t(label)}</a></li>`).join("")}</ul>
+    </div>`).join("");
+  observeReveal();
+  // blur-up on entry, same idea as the component's AnimatedContainer
+  const io2=new IntersectionObserver(es=>es.forEach(e=>{
+    if(e.isIntersecting){e.target.classList.add("in");io2.unobserve(e.target);}
+  }),{threshold:.2});
+  document.querySelectorAll(".foot-anim").forEach(el=>io2.observe(el));
+}
+
+function renderTilt(){
+  const el=document.getElementById("tiltScreen"); if(!el) return;
+  // real catalog pieces, not a mocked-up screenshot
+  const picks=everything().filter(i=>i.photo).slice(0,8);
+  el.innerHTML=picks.map(i=>`<div class="tile">
+      <img loading="lazy" src="${PHOTO(i)}" alt="${esc(i.brand)}">
+      <b>${esc(i.brand)}</b>
+    </div>`).join("");
+}
+
+function renderVibes(){
+  const row=document.getElementById("vibeRow");
+  row.innerHTML=STYLES.map(s=>`
+    <div class="vibe ${filterStyle===s?'on':''}" data-style="${s}">
+      <img loading="lazy" src="${VIBE_PHOTO[s]||('https://loremflickr.com/400/300/'+STYLE_IMG[s]+'?lock='+s.length)}" onerror="this.onerror=null;this.src='${IMG(s)}'" alt="${s}">
+      <span>${s}</span>
+    </div>`).join("");
+  row.querySelectorAll(".vibe").forEach(v=> v.onclick=()=>{
+    filterStyle = filterStyle===v.dataset.style ? null : v.dataset.style;
+    renderVibes(); render(); renderFilters();
+    document.getElementById("vibeClear").style.display = filterStyle ? "inline" : "none";
+    if(filterStyle) scrollToFeed();
+  });
+  const clr=document.getElementById("vibeClear");
+  clr.style.display = filterStyle ? "inline" : "none";
+  clr.onclick=()=>{filterStyle=null;renderVibes();render();};
+}
+
+function renderFeatured(){
+  const g=document.getElementById("featuredGrid");
+  g.innerHTML = FEATURED.map(id=>{const it=ITEMS.find(x=>x.id===id);return cardHTML(it,true);}).join("");
+  g.querySelectorAll(".card[data-id]").forEach(c=> c.onclick=()=>go("/item/"+c.dataset.id));
+  observeReveal();
+}
+
+/* ---------- fan carousel ---------- */
+const FAN_POS=[
+  {rot:-21,scale:.7756,x:-30,y:7.3,z:1},
+  {rot:-14,scale:.8498,x:-22,y:4.0,z:2},
+  {rot:-7, scale:.9346,x:-11,y:1.3,z:3},
+  {rot:0,  scale:1,    x:0,  y:0,  z:10},
+  {rot:7,  scale:.9346,x:11, y:1.3,z:3},
+  {rot:14, scale:.8498,x:22, y:4.0,z:2},
+  {rot:21, scale:.7756,x:30, y:7.3,z:1}
+];
+const FAN_MAX=7, FAN_HALF=3;
+function fanMult(){const w=innerWidth;
+  return w<480?.28:w<640?.38:w<768?.5:w<1024?.75:1;}
+function fanSlot(total,slot){
+  if(total>=FAN_MAX) return FAN_POS[slot];
+  const c=total>>1, d=total>1?(slot-c)/c:0, a=Math.abs(d);
+  return {rot:d*21, scale:1-.2244*a*a, x:d*30, y:a*a*7.3, z:10-Math.abs(slot-c)};
+}
+
+function mountFan(box,items,cardHTMLFn,onClick){
+  const total=items.length;
+  if(!total){ box.innerHTML=""; return; }
+  const paged=total>FAN_MAX;
+  let center=paged?FAN_HALF:total>>1;
+
+  box.innerHTML=`<div class="fan"></div>${paged?`
+    <div class="fan-nav">
+      <button class="fan-arrow" data-dir="-1" aria-label="Previous">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <div class="fan-dots">${items.map((_,i)=>`<span${i===center?' class="on"':""}></span>`).join("")}</div>
+      <button class="fan-arrow" data-dir="1" aria-label="Next">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+    </div>`:""}`;
+  const stage=box.querySelector(".fan");
+  stage.innerHTML=items.map((it,i)=>`<div class="fan-card" data-i="${i}">${cardHTMLFn(it,i)}</div>`).join("");
+  const cards=[...stage.querySelectorAll(".fan-card")];
+
+  const visible=()=>{                       // card index -> slot
+    const m=new Map();
+    if(!paged){ items.forEach((_,i)=>m.set(i,i)); return m; }
+    for(let s=0;s<FAN_MAX;s++) m.set(((center+s-FAN_HALF)%total+total)%total, s);
+    return m;
+  };
+
+  function layout(hovered){
+    const map=visible(), mult=fanMult(), count=paged?FAN_MAX:total;
+    const centerSlot=count>>1;
+    cards.forEach((el,i)=>{
+      const slot=map.get(i);
+      if(slot===undefined){ el.style.opacity="0"; el.style.pointerEvents="none";
+        el.style.transform="translate(0,0) scale(.5)"; el.style.zIndex=0; return; }
+      const b=fanSlot(count,slot);
+      let x=b.x*mult, y=b.y, rot=b.rot, sc=b.scale;
+      if(hovered!=null){
+        const dist=Math.abs(slot-hovered);
+        if(slot===hovered){ y-=2.5; sc*=1.08; }
+        else{
+          const norm=centerSlot>0?(slot-centerSlot)/centerSlot:0;
+          const push=8*(1-Math.abs(norm))*(1+.2*Math.max(0,3-dist));
+          if(slot<hovered){ x-=push*mult; rot-=3/(dist+1); }
+          else{ x+=push*mult; rot+=3/(dist+1); }
+        }
+      }
+      el.style.opacity="1"; el.style.pointerEvents="auto";
+      el.style.transform=`translate(${x}rem, ${y}rem) rotate(${rot}deg) scale(${sc})`;
+      el.style.zIndex=b.z;
+      el.style.transitionDelay=(Math.abs(slot-(hovered??centerSlot))*0.02)+"s";
+    });
+  }
+
+  cards.forEach(el=>{
+    el.addEventListener("mouseenter",()=>{
+      const s=visible().get(+el.dataset.i);
+      if(s!==undefined) layout(s);
+    });
+    if(onClick) el.addEventListener("click",e=>onClick(items[+el.dataset.i],el,e));
+  });
+  stage.addEventListener("mouseleave",()=>layout(null));
+  box.querySelectorAll("[data-dir]").forEach(b=> b.onclick=()=>{
+    center=(center+ +b.dataset.dir + total)%total;
+    box.querySelectorAll(".fan-dots span").forEach((d,i)=>d.classList.toggle("on",i===center));
+    layout(null);
+  });
+  addEventListener("resize",()=>layout(null));
+  layout(null);                                   // place them straight away
+  requestAnimationFrame(()=>layout(null));        // and again once fonts/images settle
+}
+
+function renderPending(){
+  const box=document.getElementById("pendingGrid");
+  box.className="";                                  // the fan owns its layout
+  mountFan(box, PENDING, (p)=>`
+      <img loading="lazy" src="${PHOTO(p)}" onerror="this.onerror=null;this.src='${IMG(p.seed)}'" alt="unidentified item">
+      <div class="fan-body">
+        <div class="fan-cat">${t("c."+p.cat)||p.cat}</div>
+        <div class="fan-note">${esc(p.note)}</div>
+        ${(()=>{const k=Object.keys(p.votes||{});if(!k.length)return"";const v=p.votes[k[0]];
+          return `<div class="vote-hint" style="margin:0 0 8px">${t("id.votes").replace("{n}",v.n).replace("{b}","<b>"+esc(v.label)+"</b>")}</div>`;})()}
+        <div class="fan-foot">
+          <span class="fan-look">${p.looking} ${t("identify.count")}</span>
+          <button class="fan-btn" data-identify="${p.id}">${t("identify.btn")}</button>
+        </div>
+      </div>`);
+  box.querySelectorAll("[data-identify]").forEach(b=> b.onclick=(e)=>{e.stopPropagation();openIdForm(b);});
+}
+
+/* --- community reward: a correct ID earns a free look-up (weekly cap) --- */
+const WEEKLY_ID_CAP=5;
+let weeklyEarned=0;
+function idCapped(){ return weeklyEarned>=WEEKLY_ID_CAP; }
+function updateRewardHint(){
+  const el=document.querySelector(".reward-hint span"); if(!el) return;
+  const base=t("id.hint").replace("{max}",WEEKLY_ID_CAP);
+  const prog=t("id.progress").replace("{n}",weeklyEarned).replace("{max}",WEEKLY_ID_CAP);
+  el.textContent = weeklyEarned>0 ? base+" · "+prog : base;
+  const box=el.closest(".reward-hint");
+  box.style.opacity = idCapped() ? ".6" : "";
+}
+
+const ID_CONSENSUS=2;                       // votes needed before a guess pays out
+const voteKey=s=>s.toLowerCase().replace(/^@/,"").replace(/\$/g,"s").replace(/[^a-z0-9]/g,"");
+
+function openIdForm(btn){
+  const row=btn.closest(".fan-foot")||btn.closest(".row");
+  if(!row||row.querySelector(".id-form")) return;
+  const item=PENDING.find(p=>p.id===+btn.dataset.identify);
+  row.innerHTML=`<form class="id-form">
+      <input type="text" placeholder="${t("id.ph")}" required>
+      <button type="submit" class="btn btn-primary">${t("id.send")}</button>
+    </form>`;
+  const form=row.querySelector("form");
+  form.querySelector("input").focus();
+  form.onsubmit=(e)=>{
+    e.preventDefault(); e.stopPropagation();
+    const named=form.querySelector("input").value.trim();
+    if(named.length<2) return;
+    submitId(item,named,row);
+  };
+}
+
+function submitId(item,named,row){
+  const key=voteKey(named);
+  const v=item.votes[key] || (item.votes[key]={label:named.replace(/^@/,""),n:0});
+  v.n++;
+  const confirmed = v.n>=ID_CONSENSUS;
+
+  if(!confirmed){
+    // first to name it — nothing paid out until someone agrees
+    row.innerHTML=`<div class="id-thanks pendingv">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        <span><b>${t("id.pending")}</b> — ${t("id.pending_desc").replace("{b}",v.label)}</span>
+      </div>`;
+    toast(t("id.pending"));
+    return;
+  }
+
+  // consensus reached → confirm, pay out (unless the weekly cap is hit), store brand
+  const capped=idCapped();
+  if(!capped){ freeLookups++; weeklyEarned++; }
+  item.confirmed=v.label;
+  row.innerHTML=`<div class="id-thanks">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>
+      <span><b>${t("id.confirmed").replace("{n}",v.n)}</b> — ${t("id.confirmed_desc").replace("{b}",v.label)}${capped?"":" "+t("id.reward")}</span>
+    </div>`;
+  toast(capped ? t("id.capped_toast") : t("id.confirm_toast").replace("{b}",v.label));
+  updateRewardHint();
+  fetch("/api/score",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({user:"you",points:2})}).then(()=>renderBoard()).catch(()=>{});
+  addBrandToDB({brand:v.label,handle:"@"+voteKey(v.label),indie:true});
+}
+
+/* ============ modals ============ */
+function openDetail(id){
+  const it=ITEMS.find(x=>x.id===id); if(!it) return;
+  const type = it.indie ? t("detail.indie") : t("detail.big");
+  document.getElementById("detailBody").innerHTML=`
+    <div class="img"><img src="${PHOTO(it)}" onerror="this.onerror=null;this.src='${IMG(it.seed)}'" alt="${it.brand} ${it.name}"></div>
+    <div class="info">
+      <div class="brand">${it.brand}</div>
+      <h3>${it.name}</h3>
+      <div style="margin:18px 0 6px">
+        <div class="kv"><span>${t("detail.price")}</span><b>${it.price ?? t("detail.na")}</b></div>
+        <div class="kv"><span>${t("detail.category")}</span><b>${it.cat}</b></div>
+        <div class="kv"><span>${t("detail.type")}</span><b>${type}</b></div>
+        <div class="kv"><span>${t("detail.spotted")}</span><b>${it.src}</b></div>
+        <div class="kv"><span>${t("detail.avail")}</span><b style="color:${it.price?'var(--accent)':'var(--faint)'}">${it.price? t("detail.instock"):t("detail.na")}</b></div>
+      </div>
+      <div class="modal-cta">
+        <a class="btn btn-primary" style="text-align:center" href="${it.link||("https://instagram.com/"+it.src.replace("@",""))}" target="_blank" rel="noopener noreferrer">${t("detail.buy")} ↗</a>
+        <a class="btn btn-ghost" style="text-align:center" href="https://instagram.com/${it.src.replace("@","")}" target="_blank" rel="noopener noreferrer">${t("spot.visit")} ↗</a>
+      </div>
+    </div>`;
+  openOverlay("detailOverlay");
+}
+
+let freeLookups = 5;   // mock free-tier counter
+
+function esc(s){return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+
+function renderSubmitForm(){
+  document.getElementById("submitBody").innerHTML=`
+    <div class="modal-form">
+      <h3>${t("spot.title")}</h3>
+      <p class="desc">${t("spot.desc")}</p>
+      <div class="field-group"><label>${t("submit.link")}</label>
+        <input id="spotUrl" type="url" placeholder="${t("spot.ph")}" autocomplete="off"></div>
+      <button class="btn btn-primary" style="width:100%;padding:14px" id="spotBtn">${t("spot.btn")}</button>
+      <div class="spot-left">${freeLookups} ${t("spot.left")}</div>
+      <div id="spotResult"></div>
+    </div>`;
+  const go=()=>runDetect();
+  document.getElementById("spotBtn").onclick=go;
+  document.getElementById("spotUrl").addEventListener("keydown",e=>{if(e.key==="Enter")go();});
+}
+
+async function runDetect(){
+  const input=document.getElementById("spotUrl");
+  const box=document.getElementById("spotResult");
+  const btn=document.getElementById("spotBtn");
+  const url=(input.value||"").trim();
+  if(!url){box.innerHTML=`<p class="spot-hint">${t("spot.ph")}</p>`;return;}
+  if(freeLookups<=0){ renderLimit(box); return; }
+  btn.disabled=true;
+  const flux=createFlux(box,[
+    {at:0,  label:t("flux.fetching")},
+    {at:35, label:t("flux.reading")},
+    {at:70, label:t("flux.matching")},
+    {at:100,label:t("flux.done")}
+  ]);
+  flux.to(34,2);                                   // opening the video
+  setTimeout(()=>flux.to(68,10),1800);             // pulling comments (the slow bit)
+  try{
+    const r=await fetch("/api/detect",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url})});
+    const data=await r.json();
+    flux.set(88);
+    if(!r.ok || data.error){ flux.destroy(); box.innerHTML=`<p class="spot-hint">${t("spot.error")}</p>`; }
+    else {
+      freeLookups=Math.max(0,freeLookups-1);
+      flux.done(()=>renderDetectResult(data,box));
+    }
+  }catch(e){ flux.destroy(); box.innerHTML=`<p class="spot-hint">${t("spot.error")}</p>`; }
+  btn.disabled=false;
+}
+
+function renderLimit(box){
+  box.innerHTML=`<div class="spot-card" style="text-align:center">
+    <div class="spot-brand" style="font-size:20px">${t("spot.limit.title")}</div>
+    <p class="spot-hint" style="margin:8px auto 14px;max-width:320px">${t("spot.limit.desc")}</p>
+    <button class="btn btn-primary" style="width:100%;padding:12px" id="toPlus">${t("spot.limit.cta")}</button>
+  </div>`;
+  document.getElementById("toPlus").onclick=()=>{closeOverlay("submitOverlay");renderPlus();openOverlay("plusOverlay");};
+}
+
+/* --- progressive flux loader -------------------------------------------
+   Real work has unknown duration, so the bar creeps toward the next phase
+   threshold and only jumps when an actual milestone lands. It never fakes
+   100% — that arrives with the real result. */
+function createFlux(box, phases){
+  box.innerHTML=`<div class="flux">
+      <div class="flux-labelbox"><div class="flux-label" data-label></div></div>
+      <div class="flux-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Loading">
+        <div class="flux-fill" data-fill><span class="flux-sheen"></span></div>
+      </div>
+      <div class="flux-pct" data-pct>0%</div>
+    </div>`;
+  const fill=box.querySelector("[data-fill]"), pct=box.querySelector("[data-pct]"),
+        labelEl=box.querySelector("[data-label]"), track=box.querySelector(".flux-track");
+  const sorted=[...phases].sort((a,b)=>a.at-b.at);
+  let value=0, shown="", creep=null;
+
+  const paint=()=>{
+    fill.style.width=value+"%";
+    pct.textContent=Math.round(value)+"%";
+    track.setAttribute("aria-valuenow",Math.round(value));
+    let next=sorted[0]?.label||"";
+    sorted.forEach(p=>{ if(value>=p.at) next=p.label; });
+    if(next!==shown){ shown=next; writeLabel(next); }
+    track.setAttribute("aria-valuetext",Math.round(value)+"% – "+shown);
+  };
+  const writeLabel=(text)=>{
+    labelEl.innerHTML=[...text].map((ch,i)=>
+      `<span style="animation-delay:${(0.18+i*0.035).toFixed(3)}s">${ch===" "?"&nbsp;":esc(ch)}</span>`).join("");
+  };
+  const stop=()=>{ if(creep){clearInterval(creep);creep=null;} };
+
+  return {
+    /* creep toward `ceiling` while we wait on the network */
+    to(ceiling,seconds=6){
+      stop();
+      const step=Math.max(0.4,(ceiling-value)/(seconds*10));
+      creep=setInterval(()=>{
+        if(value>=ceiling-0.5){ stop(); return; }
+        value=Math.min(ceiling,value+step); paint();
+      },100);
+      paint();
+    },
+    set(v){ stop(); value=Math.max(value,Math.min(100,v)); paint(); },
+    done(cb){ stop(); value=100; paint(); setTimeout(()=>cb&&cb(),520); },
+    destroy(){ stop(); }
+  };
+}
+
+/* --- add a detected brand straight into the database --- */
+let nextId = 1000;
+/* Returns a destination we can actually stand behind, or null.
+   Never invent instagram.com/<name>: "faith by luis" sent people to a
+   random person called Luis. */
+/* hand-checked shops for labels that aren't in the indie catalog */
+const KNOWN_SITES={
+  "acne studios":"https://www.acnestudios.com","acne":"https://www.acnestudios.com",
+  "zara":"https://www.zara.com","uniqlo":"https://www.uniqlo.com",
+  "carhartt":"https://www.carhartt-wip.com","levi's":"https://www.levi.com","levis":"https://www.levi.com",
+  "our legacy":"https://www.ourlegacy.com","stone island":"https://www.stoneisland.com",
+  "arc'teryx":"https://arcteryx.com","arcteryx":"https://arcteryx.com",
+  "salomon":"https://www.salomon.com","adidas":"https://www.adidas.com",
+  "corteiz":"https://crtz.xyz","aimé leon dore":"https://www.aimeleondore.com",
+  "a$apmode":"https://asapmode.com","asapmode":"https://asapmode.com",
+  "mutimer":"https://mutimer.co"
+};
+function knownBrand(name){
+  const n=(name||"").toLowerCase().replace(/^@/,"").trim();
+  if(n.length<3) return null;
+  const slug=n.replace(/[^a-z0-9._]/g,"");
+  if(!slug) return null;                       // an empty slug matched every handle-less brand
+  return ALL_BRANDS.find(b=>b.brand.toLowerCase()===n) ||
+         ALL_BRANDS.find(b=>{
+           const h=(b.handle||"").toLowerCase().replace("@","");
+           return h && h===slug;
+         });
+}
+function brandLink(g){
+  const flat=(g.brand||"").toLowerCase().replace(/^@/,"").trim();
+  if(KNOWN_SITES[flat]) return KNOWN_SITES[flat];        // verified by hand
+  const known=knownBrand(g.brand)||knownBrand(g.handle);
+  if(known&&known.site)   return known.site;             // its real shop
+  if(known&&known.handle) return "https://instagram.com/"+known.handle.replace("@","");
+  if(/\.(com|shop|co|xyz|store)$/i.test(g.brand||""))    // someone posted a domain
+    return "https://"+g.brand.replace(/^@/,"");
+  if(g.verified_handle && g.handle){                      // a real @tag from the comments
+    const slug=g.handle.replace(/^@/,"").replace(/\$/g,"s").replace(/[^a-zA-Z0-9._]/g,"");
+    if(slug.length>1) return "https://instagram.com/"+slug.toLowerCase();
+  }
+  return null;                                            // we honestly don't know
+}
+function addBrandToDB(g){
+  const name=g.brand.replace(/^@/,"");
+  const existing=ITEMS.find(i=>i.brand.toLowerCase()===name.toLowerCase());
+  if(existing) return existing;
+  const prod=g.product ? g.product.replace(/\b\w/g,c=>c.toUpperCase()) : null;
+  const guessCat = /jean|pant|trouser|short|denim/i.test(g.product||"") ? "Denim"
+                 : /hoodie|knit|sweater/i.test(g.product||"") ? "Knitwear"
+                 : /jacket|coat/i.test(g.product||"") ? "Jackets"
+                 : /tee|shirt|polo|top/i.test(g.product||"") ? "Tees"
+                 : /cap|hat|beanie/i.test(g.product||"") ? "Accessories" : "Jackets";
+  const item={
+    id:++nextId, brand:name, name:prod || (lang==="pl"?"Nowe znalezisko":"New find"),
+    cat:guessCat, style:"streetwear", price:null, indie:!!g.indie,
+    src:g.handle||("@"+name), likes:1, seed:"new"+nextId,
+    link:brandLink(g), isNew:true
+  };
+  ITEMS.push(item);
+  render();
+  return item;
+}
+
+const CAT_ICON={
+  jeans:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h12l-1 18h-4l-1-9-1 9H7z"/></svg>',
+  shoes:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 17h20v3H2z"/><path d="M2 17V9l5 2 3 3h12v3"/></svg>',
+  belt:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 10h20v4H2z"/><rect x="9" y="8" width="6" height="8" rx="1"/></svg>',
+  shirt:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 3 4 6l2 3 1-1v10h10V8l1 1 2-3-4-3-4 2z"/></svg>',
+  jacket:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 3 4 6v14h16V6l-4-3-4 3z"/><path d="M12 6v14"/></svg>',
+  knit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 4h12v16H6z"/><path d="M9 4v16M15 4v16"/></svg>',
+  hat:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 15a8 8 0 0 1 16 0"/><path d="M2 15h20v3H2z"/></svg>',
+  bag:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 8h14l-1 12H6z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>',
+  scarf:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 3c3 3 7 3 10 0"/><path d="M8 6c0 6-2 9-2 15"/><path d="M16 6c0 6 2 9 2 15"/></svg>',
+  glasses:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="6" cy="13" r="3.5"/><circle cx="18" cy="13" r="3.5"/><path d="M9.5 13h5"/></svg>',
+  jewelry:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="14" r="5"/><path d="m8 6 4-3 4 3"/></svg>',
+  watch:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="5"/><path d="M12 10v2l1.5 1M9 3h6M9 21h6"/></svg>'
+};
+
+function renderItemBreakdown(data,box){
+  const meta=`${data.comment_count||0} ${t("spot.comments")}${data.cached?" · "+t("spot.cached"):""}`;
+  const rows=data.items.map((it,i)=>{
+    const alt = (it.alternatives&&it.alternatives.length)
+      ? `<div class="item-alt">${t("items.alt")}: ${it.alternatives.map(esc).join(", ")}</div>` : "";
+    return `<div class="item-row" data-i="${i}">
+      <span class="item-ico">${CAT_ICON[it.category]||CAT_ICON.shirt}</span>
+      <div class="item-main">
+        <div class="item-cat">${t("cat."+it.category)||it.category}</div>
+        <div class="item-brand">${esc(it.brand)}</div>
+        ${alt}
+      </div>
+      <div class="item-right">
+        <span class="item-conf">${it.confidence}%</span>
+        ${(()=>{const u=brandLink(it);
+          return u ? `<a class="item-go" href="${u}" target="_blank" rel="noopener noreferrer" title="${t("spot.visit")}">↗</a>`
+                   : `<button class="item-go" data-find="${esc(it.brand)}" title="${t("spot.view")}">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+                      </button>`;})()}
+      </div>
+    </div>`;
+  }).join("");
+  box.innerHTML=`<div class="spot-card">
+      <div class="spot-lead">${t("items.title")}</div>
+      <p class="spot-hint" style="margin:4px 0 12px">${t("items.sub")}</p>
+      <div class="item-list">${rows}</div>
+      <div class="conf-label" style="margin-top:12px">${meta}</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary" style="flex:1;padding:12px" id="addAll">${t("items.add")}</button>
+        <button class="btn btn-ghost" style="flex:1;padding:12px" id="tryAgain">${t("spot.again")}</button>
+      </div>
+    </div><div class="spot-left">${freeLookups} ${t("spot.left")}</div>`;
+  // no trustworthy link → search our own catalog for that name instead
+  box.querySelectorAll("[data-find]").forEach(b=> b.onclick=()=>{
+    const q=b.dataset.find;
+    closeOverlay("submitOverlay");
+    query=q; filterCat=null; filterStyle=null;
+    document.getElementById("navSearch").value=q;
+    renderFilters(); renderVibes(); render();
+    document.getElementById("grid").scrollIntoView({behavior:"smooth",block:"start"});
+  });
+  document.getElementById("addAll").onclick=()=>{
+    data.items.forEach(it=>addBrandToDB({brand:it.brand,handle:it.handle,indie:true,product:t("cat."+it.category)}));
+    toast(t("items.added").replace("{n}",data.items.length));
+    closeOverlay("submitOverlay");
+    document.getElementById("grid").scrollIntoView({behavior:"smooth",block:"start"});
+  };
+  document.getElementById("tryAgain").onclick=()=>{const i=document.getElementById("spotUrl");i.value="";i.focus();box.innerHTML="";};
+}
+
+function renderDetectResult(data,box){
+  const meta=`${data.comment_count||0} ${t("spot.comments")}${data.cached?" · "+t("spot.cached"):""}`;
+  const leftLine=`<div class="spot-left">${freeLookups} ${t("spot.left")}</div>`;
+  if(!data.guess){
+    box.innerHTML=`<div class="spot-card">
+      <div class="spot-brand" style="font-size:20px">${t("spot.none.title")}</div>
+      <p class="spot-hint" style="margin:8px 0 12px">${t("spot.none.desc")}</p>
+      <div class="conf-label">${meta}</div>
+      <button class="btn btn-primary" style="width:100%;padding:12px" id="toCommunity">${t("spot.community")}</button>
+    </div>${leftLine}`;
+    document.getElementById("toCommunity").onclick=showCommunityDone;
+    return;
+  }
+  // one video usually hides several questions → always show the per-piece list
+  if(data.items && data.items.length){ renderItemBreakdown(data,box); return; }
+
+  const g=data.guess;
+  const tag = g.known ? "" : `<span class="spot-tag">${t("spot.unknown")}</span>`;
+  const ev = (g.evidence||[]).map(e=>`<li><b>▸</b><span>${esc(e)}</span></li>`).join("");
+  box.innerHTML=`<div class="spot-card">
+    ${tag}
+    <div class="spot-lead">${t("spot.found")}</div>
+    <div class="spot-brand">${esc(g.brand)}</div>
+    ${g.handle?`<div class="spot-handle">${esc(g.handle)}</div>`:""}
+    <div class="conf-bar"><div class="conf-fill" id="confFill"></div></div>
+    <div class="conf-label">${g.confidence}% ${t("spot.conf")} · ${meta}</div>
+    <ul class="spot-ev">${ev}</ul>
+    <div class="db-note" id="dbNote"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-primary" style="flex:1;min-width:130px;padding:12px" id="searchBrand">${t("spot.view")}</button>
+      ${(()=>{const u=brandLink(g);
+        return u ? `<a class="btn btn-ghost" style="flex:1;min-width:130px;padding:12px;text-align:center" id="visitBrand" href="${u}" target="_blank" rel="noopener noreferrer">${t("spot.visit")} ↗</a>`
+                 : `<span class="btn btn-ghost" style="flex:1;min-width:130px;padding:12px;text-align:center;opacity:.55;cursor:default" id="visitBrand">${t("spot.nolink")}</span>`;})()}
+    </div>
+    <button class="btn btn-ghost" style="width:100%;margin-top:8px;padding:11px" id="tryAgain">${t("spot.again")}</button>
+  </div>${leftLine}`;
+  requestAnimationFrame(()=>{const f=document.getElementById("confFill");if(f)f.style.width=g.confidence+"%";});
+
+  // auto-add every identified brand to the database
+  const added=addBrandToDB(g);
+  const note=document.getElementById("dbNote");
+  if(note) note.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
+     <span><b>${t("spot.added")}</b> — ${t("spot.added_desc")}</span>`;
+
+  document.getElementById("searchBrand").onclick=()=>{
+    const q=added.brand;                       // search the brand we just stored
+    closeOverlay("submitOverlay");
+    query=q; filterMode="all"; filterCat=null; filterStyle=null;
+    document.getElementById("navSearch").value=q; document.getElementById("heroSearch").value=q;
+    renderFilters(); renderVibes(); render();
+    document.getElementById("grid").scrollIntoView({behavior:"smooth",block:"start"});
+    toast(t("db.added_toast").replace("{b}",added.brand));
+  };
+  document.getElementById("tryAgain").onclick=()=>{const i=document.getElementById("spotUrl");i.value="";i.focus();box.innerHTML="";};
+}
+
+function showCommunityDone(){
+  document.getElementById("submitBody").innerHTML=`
+    <div class="form-success">
+      <div class="check"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg></div>
+      <h3 class="anton" style="font-size:26px;text-transform:uppercase;margin:0 0 8px">${t("submit.done.title")}</h3>
+      <p style="color:var(--muted);max-width:340px;margin:0 auto 22px">${t("submit.done.desc")}</p>
+      <button class="btn btn-primary" data-close style="padding:12px 30px">${t("submit.done.btn")}</button>
+    </div>`;
+  document.querySelector("#submitBody [data-close]").onclick=()=>closeOverlay("submitOverlay");
+}
+
+function renderPlus(){
+  const ck=`<span class="ck"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></span>`;
+  const feats=["plus.f1","plus.f2","plus.f3","plus.f4","plus.f5","plus.f6","plus.f7"]
+    .map(k=>`<li>${ck}<span>${t(k)}</span></li>`).join("");
+  document.getElementById("plusBody").innerHTML=`
+    <div class="plus-wrap">
+      <span class="plus-badge">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.8 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z"/></svg>
+        ${t("plus.badge")}
+      </span>
+      <h3>${t("plus.title")}</h3>
+      <p class="psub">${t("plus.sub")}</p>
+      <ul class="plus-feats">${feats}</ul>
+      <div class="freq" id="freqTabs">
+        <span class="freq-pill" id="freqPill"></span>
+        <button data-freq="monthly">${t("tab.monthly")}</button>
+        <button data-freq="yearly">${t("tab.yearly")}<span class="save">${t("tab.save")}</span></button>
+      </div>
+      <div class="plans">
+        <div class="plan best">
+          <span class="plan-badge">${t("plan.popular")}</span>
+          <div class="pname">${t("plan.plus")}</div>
+          <div class="price-old" id="priceOld"></div>
+          <div class="pprice" id="planPrice">14,99 zł</div>
+          <div class="pper">${t("plan.per_mo")}</div>
+          <div class="pnote" id="planBilled">${t("plan.billed_mo")}</div>
+          <button class="btn btn-primary" data-buy>${t("plan.cta_sub")}</button>
+        </div>
+        <div class="plan">
+          <div class="pname">${t("plan.life_title")}</div>
+          <div class="price-old"></div>
+          <div class="pprice">99,99 zł</div>
+          <div class="pper">${t("plan.life_per")}</div>
+          <div class="pnote">${t("plus.life.note")}</div>
+          <button class="btn btn-ghost" data-buy>${t("plan.cta_life")}</button>
+        </div>
+      </div>
+      <div class="plus-free">${t("plus.free")}</div>
+      <div class="plus-disc">${t("plus.disclaimer")}</div>
+    </div>`;
+  document.querySelectorAll("#plusBody [data-buy]").forEach(b=> b.onclick=()=>{closeOverlay("plusOverlay");toast(t("toast.plus"));});
+  initFreqTabs();
+}
+
+let authMode="signin";
+function renderAuth(mode){
+  authMode=mode||authMode;
+  const up=authMode==="signup";
+  const eye=`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>`;
+  const lock=`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>`;
+  const mail=`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>`;
+  const gIcon=`<svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.5 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.9a5 5 0 0 1-2.2 3.3v2.7h3.6c2.1-2 3.2-4.9 3.2-7.9Z"/><path fill="#34A853" d="M12 23c2.9 0 5.4-1 7.2-2.6l-3.6-2.7c-1 .7-2.3 1.1-3.6 1.1-2.8 0-5.1-1.9-6-4.4H2.3v2.8A11 11 0 0 0 12 23Z"/><path fill="#FBBC05" d="M6 14.4a6.6 6.6 0 0 1 0-4.2V7.4H2.3a11 11 0 0 0 0 9.8L6 14.4Z"/><path fill="#EA4335" d="M12 5.4c1.6 0 3 .6 4.1 1.6l3.1-3.1A11 11 0 0 0 2.3 7.4L6 10.2c.9-2.6 3.2-4.8 6-4.8Z"/></svg>`;
+  const igIcon=`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="#fff" stroke="none"/></svg>`;
+  document.getElementById("authBody").innerHTML=`
+    <div class="auth-modal">
+      <div class="auth-hero">
+        <div class="auth-hero-bg"><span class="b1"></span><span class="b2"></span><span class="b3"></span><span class="b4"></span></div>
+        <div class="logo" style="font-family:Anton,sans-serif;font-size:22px;text-transform:uppercase;letter-spacing:1px"><span class="the">THE</span>PL<b style="color:#fff">U</b>G</div>
+        <div>
+          <h3>${up?t("auth.welcome_up"):t("auth.welcome_in")}</h3>
+          <p>${up?t("auth.sub_up"):t("auth.sub_in")}</p>
+        </div>
+        <div class="quote">“find the fit.”</div>
+      </div>
+      <div class="auth-body">
+        <div class="auth-tabs">
+          <button class="auth-tab ${up?'':'on'}" data-mode="signin">${t("auth.signin")}</button>
+          <button class="auth-tab ${up?'on':''}" data-mode="signup">${t("auth.signup")}</button>
+        </div>
+        <button class="social-btn ig" data-social>${igIcon}${t("auth.instagram")}</button>
+        ${up?`<div class="ig-hint">${t("auth.ig_hint")}</div>`:``}
+        <button class="social-btn" data-social>${gIcon}${t("auth.google")}</button>
+        <div class="auth-or">${t("auth.or")}</div>
+        <form id="authForm">
+          <div class="glass-field">${mail}<input id="authEmail" type="email" placeholder="${t("auth.email_ph")}" autocomplete="email"></div>
+          <div class="glass-field">${lock}<input id="authPw" type="password" placeholder="${t("auth.password")}"><button type="button" class="toggle" data-toggle="authPw">${eye}</button></div>
+          ${up?`<div class="glass-field">${lock}<input id="authPw2" type="password" placeholder="${t("auth.confirm")}"><button type="button" class="toggle" data-toggle="authPw2">${eye}</button></div>`:``}
+          <div class="auth-err" id="authErr"></div>
+          <button class="auth-submit" type="submit">${up?t("auth.submit_up"):t("auth.submit_in")}</button>
+        </form>
+        <button class="auth-switch" data-switch>${up?t("auth.to_in"):t("auth.to_up")}</button>
+        <div class="auth-terms">${t("auth.terms")}</div>
+      </div>
+    </div>`;
+  const ab=document.getElementById("authBody");
+  ab.querySelectorAll(".auth-tab").forEach(b=>b.onclick=()=>renderAuth(b.dataset.mode));
+  ab.querySelector("[data-switch]").onclick=()=>renderAuth(up?"signin":"signup");
+  ab.querySelectorAll("[data-social]").forEach(b=>b.onclick=()=>toast(lang==="pl"?"Prototyp — logowanie social jest udawane":"Prototype — social sign-in is mocked"));
+  ab.querySelectorAll("[data-toggle]").forEach(b=>b.onclick=()=>{const i=document.getElementById(b.dataset.toggle);i.type=i.type==="password"?"text":"password";});
+  document.getElementById("authForm").onsubmit=(e)=>{e.preventDefault();submitAuth(up);};
+}
+
+function submitAuth(up){
+  const err=document.getElementById("authErr");
+  const pw=document.getElementById("authPw").value;
+  if(pw.length<6){err.textContent=t("auth.pw_short");return;}
+  if(up && pw!==document.getElementById("authPw2").value){err.textContent=t("auth.pw_match");return;}
+  document.getElementById("authBody").innerHTML=`
+    <div class="form-success" style="padding:60px 26px">
+      <div class="check"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg></div>
+      <h3 class="anton" style="font-size:28px;text-transform:uppercase;margin:0 0 8px">${t("auth.done_title")}</h3>
+      <p style="color:var(--muted);max-width:320px;margin:0 auto 22px">${t("auth.done_desc")}</p>
+      <button class="btn btn-primary" data-close style="padding:12px 30px">${t("auth.done_btn")}</button>
+    </div>`;
+  document.querySelector("#authBody [data-close]").onclick=()=>closeOverlay("authOverlay");
+  confettiBurst();
+}
+
+function confettiBurst(){
+  if(matchMedia("(prefers-reduced-motion:reduce)").matches) return;
+  const colors=["#ff3d81","#d6ff3f","#5b8cff","#ff9d3d","#ffffff"];
+  for(let i=0;i<26;i++){
+    const p=document.createElement("div");
+    p.style.cssText=`position:fixed;z-index:300;top:38%;left:${30+Math.random()*40}%;width:8px;height:8px;background:${colors[i%colors.length]};border-radius:2px;pointer-events:none;animation:confFall ${1+Math.random()}s ease-out forwards`;
+    document.body.appendChild(p);
+    setTimeout(()=>p.remove(),2200);
+  }
+}
+
+/* billing tabs: sliding pill + price swap (14,99 monthly / 9,99 billed yearly) */
+// Ladder must reward commitment: 179,88 zł/yr monthly > 69,99 zł/yr > 99,99 zł once.
+// (9,99/mo would have billed 119,88/yr — MORE than lifetime, making yearly pointless.)
+const PRICING={monthly:{mo:"14,99 zł",old:"",note:()=>t("plan.billed_mo")},
+               yearly:{mo:"5,83 zł", old:"14,99 zł",note:()=>t("plan.billed_yr").replace("{y}","69,99 zł")}};
+let freq="monthly";
+function initFreqTabs(){
+  const wrap=document.getElementById("freqTabs"); if(!wrap) return;
+  const pill=document.getElementById("freqPill");
+  const btns=wrap.querySelectorAll("button");
+  function apply(f,animate){
+    freq=f;
+    btns.forEach(b=>b.classList.toggle("on",b.dataset.freq===f));
+    const active=wrap.querySelector(`button[data-freq="${f}"]`);
+    if(!animate) pill.style.transition="none";
+    pill.style.left=active.offsetLeft+"px";
+    pill.style.width=active.offsetWidth+"px";
+    if(!animate) requestAnimationFrame(()=>{pill.style.transition="";});
+    const p=PRICING[f];
+    document.getElementById("planPrice").textContent=p.mo;
+    document.getElementById("priceOld").textContent=p.old;
+    document.getElementById("planBilled").textContent=p.note();
+  }
+  btns.forEach(b=> b.onclick=()=>apply(b.dataset.freq,true));
+  apply(freq,false);
+}
+
+function openOverlay(id){
+  document.getElementById(id).classList.add("open");
+  document.body.style.overflow="hidden";
+  // widths are unmeasurable while hidden — place the sliding pill once visible
+  if(id==="plusOverlay") requestAnimationFrame(initFreqTabs);
+}
+function closeOverlay(id){document.getElementById(id).classList.remove("open");document.body.style.overflow="";}
+function closeAll(){closeOverlay("detailOverlay");closeOverlay("submitOverlay");closeOverlay("plusOverlay");closeOverlay("authOverlay");closeOverlay("alertsOverlay");}
+document.querySelectorAll("[data-close]").forEach(b=> b.onclick=closeAll);
+document.querySelectorAll(".overlay").forEach(o=> o.onclick=(e)=>{if(e.target===o)closeAll();});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeAll();});
+document.getElementById("openSubmit").onclick=()=>{renderSubmitForm();openOverlay("submitOverlay");};
+document.getElementById("openPlus").onclick=()=>{renderPlus();openOverlay("plusOverlay");};
+document.getElementById("alertsBtn").onclick=()=>{renderAlerts();openOverlay("alertsOverlay");};
+document.getElementById("openAuth").onclick=()=>{renderAuth("signin");openOverlay("authOverlay");};
+
+/* ============ search wiring ============ */
+document.getElementById("heroSearchBtn").onclick=()=>{query=document.getElementById("heroSearch").value;render();document.getElementById("grid").scrollIntoView({behavior:"smooth"});};
+document.getElementById("heroSearch").addEventListener("keydown",e=>{if(e.key==="Enter"){query=e.target.value;render();document.getElementById("grid").scrollIntoView({behavior:"smooth"});}});
+document.getElementById("navSearch").addEventListener("input",e=>{query=e.target.value;render();});
+
+/* ============ lang wiring ============ */
+document.querySelectorAll(".lang button").forEach(b=> b.onclick=()=>{
+  lang=b.dataset.lang;
+  document.querySelectorAll(".lang button").forEach(x=>x.classList.toggle("on",x===b));
+  applyI18n();
+});
+
+/* ============ reveal on scroll ============ */
+let io;
+function observeReveal(){
+  if(!io) io=new IntersectionObserver((es)=>{
+    let n=0;
+    es.forEach(e=>{
+      if(e.isIntersecting){
+        e.target.style.animationDelay=(n++*0.045)+"s";   // stagger within one batch
+        e.target.classList.add("in");
+        io.unobserve(e.target);
+      }
+    });
+  },{threshold:.12});
+  document.querySelectorAll(".reveal:not(.in)").forEach(el=>io.observe(el));
+}
+
+/* ============ macOS dock (cosine magnification, ported) ============ */
+const ICO={
+  link:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7L12 19"/></svg>',
+  search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>',
+  photo:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.8"/><path d="m21 15-5-5L5 21"/></svg>',
+  feed:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>',
+  vibes:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="m12 3 2.2 5.3 5.8.5-4.4 3.8 1.3 5.6L12 15.3 7.1 18.2l1.3-5.6L4 8.8l5.8-.5z"/></svg>',
+  id:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M17 9h5M19.5 6.5v5"/></svg>',
+  saved:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>',
+  plus:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.8 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z"/></svg>',
+  account:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="3.5"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>'
+};
+const DOCK_APPS=[
+  {id:"link",   i18n:"dock.link",   accent:1, act:()=>{renderSubmitForm();openOverlay("submitOverlay");setTimeout(()=>document.getElementById("spotUrl")?.focus(),150);}},
+  {id:"search", i18n:"dock.search", act:()=>{window.scrollTo({top:0,behavior:"smooth"});setTimeout(()=>document.getElementById("heroSearch")?.focus(),450);}},
+  {id:"photo",  i18n:"dock.photo",  act:()=>{renderPhotoSearch();openOverlay("submitOverlay");}},
+  {id:"feed",   i18n:"dock.feed",   act:()=>{query="";filterStyle=null;filterCat=null;filterMode="all";
+      document.getElementById("navSearch").value="";
+      feedOpen=true; feedShown=PAGE;                    // the dock opens the full feed
+      renderFilters();renderVibes();render();
+      document.getElementById("grid").scrollIntoView({behavior:"smooth",block:"start"});}},
+  {id:"vibes",  i18n:"dock.vibes",  act:()=>{document.getElementById("vibeRow").scrollIntoView({behavior:"smooth",block:"center"});}},
+  {id:"id",     i18n:"dock.id",     accent:3, act:()=>{document.getElementById("community").scrollIntoView({behavior:"smooth",block:"start"});}},
+  {id:"saved",  i18n:"dock.saved",  act:()=>{renderPlus();openOverlay("plusOverlay");}},
+  {id:"plus",   i18n:"dock.plus",   accent:2, act:()=>{renderPlus();openOverlay("plusOverlay");}},
+  {id:"account",i18n:"dock.account",act:()=>{renderAuth("signin");openOverlay("authOverlay");}}
+];
+const dockOpen=new Set(["feed"]);
+
+let dockBase=52, dockGap=6, dockMax=1.75, dockEffect=280;
+let dockScales=DOCK_APPS.map(()=>1), dockPos=[], dockMouseX=null, dockRAF=null;
+
+function dockTargets(mx){
+  if(mx===null) return DOCK_APPS.map(()=>1);
+  return DOCK_APPS.map((_,i)=>{
+    const center=(i*(dockBase+dockGap))+dockBase/2;
+    const minX=mx-dockEffect/2, maxX=mx+dockEffect/2;
+    if(center<minX||center>maxX) return 1;
+    const theta=((center-minX)/dockEffect)*2*Math.PI;
+    const capped=Math.min(Math.max(theta,0),2*Math.PI);
+    return 1+((1-Math.cos(capped))/2)*(dockMax-1);
+  });
+}
+function dockPositions(scales){
+  let x=0;
+  return scales.map(s=>{const w=dockBase*s;const c=x+w/2;x+=w+dockGap;return c;});
+}
+function buildDock(){
+  const inner=document.getElementById("dockInner");
+  inner.innerHTML=DOCK_APPS.map(a=>`
+    <div class="dock-item" data-id="${a.id}" title="${t(a.i18n)}" ${a.accent?`data-accent="${a.accent}"`:""}>
+      <span class="dock-glyph">${ICO[a.id]}</span>
+      <span class="dock-name">${t("d."+a.id)}</span>
+      ${dockOpen.has(a.id)?'<span class="dock-dot"></span>':''}
+    </div>`).join("");
+  inner.querySelectorAll(".dock-item").forEach((el,i)=>{
+    el.onclick=()=>{
+      const g=el.querySelector(".dock-glyph");
+      g.animate([{transform:"translateY(0)"},{transform:"translateY(-14px)"},{transform:"translateY(0)"}],
+                {duration:420,easing:"cubic-bezier(.3,1.4,.5,1)"});
+      dockOpen.add(DOCK_APPS[i].id); paintDock();
+      DOCK_APPS[i].act();
+    };
+  });
+  dockScales=DOCK_APPS.map(()=>1); dockPos=dockPositions(dockScales); paintDock();
+}
+function paintDock(){
+  const inner=document.getElementById("dockInner");
+  if(!inner) return;
+  const items=inner.querySelectorAll(".dock-item");
+  items.forEach((el,i)=>{
+    const s=dockScales[i], size=dockBase*s, p=dockPos[i]||0;
+    el.style.left=(p-size/2)+"px";
+    el.style.width=size+"px";
+    const g=el.querySelector(".dock-glyph");
+    if(g){ g.style.width=size+"px"; g.style.height=size+"px"; }
+    const label=el.querySelector(".dock-name");
+    if(label) label.style.fontSize=Math.max(8.5,Math.min(11,size*0.185))+"px";
+    el.style.zIndex=Math.round(s*10);
+    const dot=el.querySelector(".dock-dot"), has=dockOpen.has(DOCK_APPS[i].id);
+    if(has&&!dot){const d=document.createElement("span");d.className="dock-dot";el.appendChild(d);}
+  });
+  const width=dockPos.length?Math.max(...dockPos.map((p,i)=>p+(dockBase*dockScales[i])/2)):0;
+  document.getElementById("dock").style.width=(width+18)+"px";
+  inner.style.height=(dockBase+18)+"px";     // room for the labels
+}
+function dockAnimate(){
+  const tS=dockTargets(dockMouseX), tP=dockPositions(tS);
+  const lerp=dockMouseX!==null?0.22:0.14;
+  let moving=false;
+  dockScales=dockScales.map((s,i)=>{const d=tS[i]-s;if(Math.abs(d)>0.002)moving=true;return s+d*lerp;});
+  dockPos=dockPos.map((p,i)=>{const d=tP[i]-p;if(Math.abs(d)>0.1)moving=true;return p+d*lerp;});
+  paintDock();
+  dockRAF = (moving||dockMouseX!==null) ? requestAnimationFrame(dockAnimate) : null;
+}
+function kickDock(){ if(!dockRAF) dockRAF=requestAnimationFrame(dockAnimate); }
+(function initDock(){
+  const dock=document.getElementById("dock");
+  dock.addEventListener("mousemove",e=>{
+    const r=dock.getBoundingClientRect();
+    dockMouseX=e.clientX-r.left-9;
+    kickDock();
+  });
+  dock.addEventListener("mouseleave",()=>{dockMouseX=null;kickDock();});
+})();
+
+function renderPhotoSearch(){
+  document.getElementById("submitBody").innerHTML=`
+    <div class="modal-form">
+      <h3>${t("photo.title")}</h3>
+      <p class="desc">${t("photo.desc")}</p>
+      <input type="file" id="photoFile" accept="image/*" hidden>
+      <div class="drop" id="photoDrop">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="margin-bottom:8px"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.8"/><path d="m21 15-5-5L5 21"/></svg>
+        <div>${t("photo.drop")}</div>
+      </div>
+      <div class="spot-left">${freeLookups} ${t("spot.left")}</div>
+      <div id="photoResult"></div>
+    </div>`;
+  const zone=document.getElementById("photoDrop"), file=document.getElementById("photoFile");
+  zone.onclick=()=>file.click();
+  file.onchange=()=>{ if(file.files&&file.files[0]) runImageSearch(file.files[0]); };
+  ["dragenter","dragover"].forEach(e=>zone.addEventListener(e,ev=>{ev.preventDefault();zone.style.borderColor="var(--accent)";}));
+  ["dragleave","drop"].forEach(e=>zone.addEventListener(e,ev=>{ev.preventDefault();zone.style.borderColor="";}));
+  zone.addEventListener("drop",ev=>{
+    const f=ev.dataTransfer.files&&ev.dataTransfer.files[0];
+    if(f) runImageSearch(f);
+  });
+}
+
+function runImageSearch(file){
+  const box=document.getElementById("photoResult");
+  if(freeLookups<=0){ renderLimit(box); return; }
+  const reader=new FileReader();
+  reader.onload=async()=>{
+    box.innerHTML=`<img class="photo-preview" src="${reader.result}" alt=""><div id="fluxBox"></div>`;
+    const flux=createFlux(document.getElementById("fluxBox"),[
+      {at:0,  label:t("flux.uploading")},
+      {at:40, label:t("flux.scanning")},
+      {at:75, label:t("flux.matching")},
+      {at:100,label:t("flux.done")}
+    ]);
+    flux.to(38,3);                                 // sending the image
+    setTimeout(()=>flux.to(74,12),2500);           // Lens doing the work
+    try{
+      const r=await fetch("/api/image",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({image:reader.result})});
+      const d=await r.json();
+      flux.set(90);
+      if(!r.ok||d.error||!d.matches||!d.matches.length){
+        flux.destroy(); box.innerHTML=`<p class="spot-hint">${t("photo.none")}</p>`; return;
+      }
+      freeLookups=Math.max(0,freeLookups-1);
+      flux.done(()=>renderImageMatches(d.matches,box,reader.result));
+    }catch(e){ flux.destroy(); box.innerHTML=`<p class="spot-hint">${t("spot.error")}</p>`; }
+  };
+  reader.readAsDataURL(file);
+}
+
+function renderImageMatches(matches,box,preview){
+  const rows=matches.slice(0,8).map(m=>`
+    <a class="match-row" href="${m.link}" target="_blank" rel="noopener noreferrer">
+      ${m.thumbnail?`<img class="match-thumb" src="${m.thumbnail}" alt="" loading="lazy">`:`<span class="match-thumb"></span>`}
+      <span class="match-main">
+        <span class="match-src">${esc(m.source)}${m.exact?` · <b>${t("photo.exact")}</b>`:""}</span>
+        <span class="match-title">${esc(m.title)}</span>
+      </span>
+      <span class="match-go">↗</span>
+    </a>`).join("");
+  box.innerHTML=`<div class="spot-card">
+      <div class="spot-lead">${t("photo.found")}</div>
+      <img class="photo-preview" src="${preview}" alt="">
+      <div class="match-list">${rows}</div>
+      <button class="btn btn-primary" style="width:100%;padding:12px;margin-top:12px" id="photoAdd">${t("photo.add")}</button>
+    </div><div class="spot-left">${freeLookups} ${t("spot.left")}</div>`;
+  document.getElementById("photoAdd").onclick=()=>{
+    const m=matches[0];
+    addBrandToDB({brand:m.source,handle:null,indie:true,product:m.title});
+    toast(t("db.added_toast").replace("{b}",m.source));
+    closeOverlay("submitOverlay");
+  };
+}
+
+/* ============ theme preview ============ */
+/* palettes only carry the accent pair — surfaces belong to the light/dark mode */
+/* vivid, not muted — these are meant to pop off the dark ground */
+const THEMES={
+  sapphire:{'--accent':'#0a6bff','--accent-2':'#31d9ff','--on-accent':'#ffffff'},
+  violet:  {'--accent':'#8b3dff','--accent-2':'#ff5cc8','--on-accent':'#ffffff'},
+  acid:    {'--accent':'#c6ff00','--accent-2':'#00ffa3','--on-accent':'#0b0b0d'},
+  hot:     {'--accent':'#ff2d6f','--accent-2':'#ffa41b','--on-accent':'#ffffff'}
+};
+function setTheme(name){
+  const th=THEMES[name]; if(!th) return;
+  for(const k in th) document.documentElement.style.setProperty(k,th[k]);
+  if(name==="mono" && document.documentElement.dataset.mode==="light"){
+    document.documentElement.style.setProperty('--accent','#101116');
+    document.documentElement.style.setProperty('--on-accent','#ffffff');
+  }
+  document.documentElement.dataset.accent=name;
+  document.querySelectorAll('#themePick button').forEach(b=>b.classList.toggle('on',b.dataset.theme===name));
+  try{ localStorage.setItem('plug.accent',name); }catch(e){}
+}
+document.querySelectorAll('#themePick button').forEach(b=> b.onclick=()=>setTheme(b.dataset.theme));
+
+/* light / dark */
+function setMode(mode){
+  document.documentElement.dataset.mode=mode;
+  document.body.classList.add("mode-flip");
+  setTimeout(()=>document.body.classList.remove("mode-flip"),500);
+  setTheme(document.documentElement.dataset.accent||"sapphire");
+  try{ localStorage.setItem('plug.mode',mode); }catch(e){}
+}
+document.getElementById("modeToggle").onclick=()=>
+  setMode(document.documentElement.dataset.mode==="light"?"dark":"light");
+(function initMode(){
+  let m="dark", a="sapphire";
+  try{
+    m=localStorage.getItem('plug.mode') ||
+      (window.matchMedia("(prefers-color-scheme: light)").matches?"light":"dark");
+    a=localStorage.getItem('plug.accent')||"sapphire";
+  }catch(e){}
+  document.documentElement.dataset.mode=m;
+  setTheme(a);
+})();
+
+/* ============ mobile tabbar ============ */
+function setTab(name){
+  document.querySelectorAll("#tabbar button").forEach(b=>b.classList.toggle("on",b.dataset.tab===name));
+}
+document.querySelectorAll("#tabbar button").forEach(b=> b.onclick=()=>{
+  const tab=b.dataset.tab;
+  if(tab==="spot"){renderSubmitForm();openOverlay("submitOverlay");return;}
+  setTab(tab);
+  if(tab==="feed"){window.scrollTo({top:0,behavior:"smooth"});}
+  if(tab==="search"){document.querySelector(".hero-search").scrollIntoView({behavior:"smooth",block:"center"});setTimeout(()=>document.getElementById("heroSearch").focus(),400);}
+  if(tab==="pending"){document.getElementById("community").scrollIntoView({behavior:"smooth",block:"start"});}
+  if(tab==="saved"){renderPlus();openOverlay("plusOverlay");}
+});
+
+/* tiny toast */
+function toast(msg){
+  let el=document.getElementById("_toast");
+  if(!el){el=document.createElement("div");el.id="_toast";
+    el.style.cssText="position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:200;background:var(--fg);color:var(--bg);font-size:13px;font-weight:600;padding:11px 18px;border-radius:999px;box-shadow:0 8px 24px rgba(0,0,0,.4);transition:opacity .3s,transform .3s;opacity:0";
+    document.body.appendChild(el);}
+  el.textContent=msg;el.style.opacity="1";el.style.transform="translateX(-50%) translateY(0)";
+  clearTimeout(el._t);el._t=setTimeout(()=>{el.style.opacity="0";el.style.transform="translateX(-50%) translateY(8px)";},2600);
+}
+
+
+/* ============ watching pieces, alerts, leaderboard, weekly drop ============ */
+let WATCHES=new Set(), ALERTS=[];
+
+async function loadAlerts(){
+  try{
+    const d=await (await fetch("/api/alerts")).json();
+    ALERTS=d.alerts||[];
+    WATCHES=new Set((d.watches||[]).map(w=>String(w.id)));
+    const unread=ALERTS.filter(a=>!a.read).length;
+    const dot=document.getElementById("bellDot");
+    if(dot) dot.hidden = unread===0;
+  }catch(e){}
+}
+
+async function toggleWatch(item,btn){
+  const id=String(item.id), on=!WATCHES.has(id);
+  on?WATCHES.add(id):WATCHES.delete(id);
+  paintWatchBtn(btn,on);
+  toast(on?t("watch.added"):t("watch.removed"));
+  try{
+    await fetch("/api/watch",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({on,item:{id:item.id,name:item.name,brand:item.brand,
+        link:item.link||null,image:PHOTO(item),price:item.price||null,soldOut:!item.price}})});
+  }catch(e){}
+}
+function paintWatchBtn(btn,on){
+  if(!btn) return;
+  btn.classList.toggle("on",on);
+  btn.innerHTML=`<svg width="14" height="14" viewBox="0 0 24 24" fill="${on?"currentColor":"none"}" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>${on?t("watch.off"):t("watch.on")}`;
+}
+
+function renderAlerts(){
+  const box=document.getElementById("alertsBody");
+  const rows=ALERTS.map(a=>`
+    <a class="alert-row" href="${a.link||"#"}" target="_blank" rel="noopener noreferrer">
+      ${a.image?`<img src="${a.image}" alt="">`:`<span class="alert-row-img"></span>`}
+      <span class="alert-main">
+        <span class="alert-kind">${a.kind==="price"?t("alerts.price"):t("alerts.restock")} · ${esc(a.brand||"")}</span>
+        <span class="alert-name">${esc(a.name||"")}</span>
+      </span>
+      <span class="alert-price">${a.was&&a.price?`<s>${a.was}</s>${a.price}`:(a.price||"")}</span>
+    </a>`).join("");
+  box.innerHTML=`<div class="alerts-list">
+      <h3>${t("alerts.title")}</h3>
+      <p class="spot-hint" style="margin:0 0 8px">${t("alerts.watching").replace("{n}",WATCHES.size)}</p>
+      ${rows||`<p class="spot-hint">${t("alerts.none")}</p>`}
+    </div>`;
+  ALERTS.forEach(a=>a.read=true);
+  const dot=document.getElementById("bellDot"); if(dot) dot.hidden=true;
+}
+
+async function renderBoard(){
+  const box=document.getElementById("board"); if(!box) return;
+  let rows=[];
+  try{ rows=(await (await fetch("/api/leaderboard")).json()).board||[]; }catch(e){}
+  box.innerHTML=rows.map((r,i)=>`
+    <div class="board-row${r.user==="you"?" me":""}">
+      <span class="board-rank">${i+1}</span>
+      <span class="board-user">${esc(r.user)}${r.user==="you"?` · ${t("board.you")}`:""}
+        <span class="board-ids">· ${r.ids||0} ${t("board.ids")}</span></span>
+      <span class="board-pts">${r.points} <span style="font-size:11px;opacity:.6">${t("board.pts")}</span></span>
+    </div>`).join("");
+}
+
+/* the drop is deterministic: same week -> same ten brands for everyone */
+function weekNumber(){
+  const d=new Date(), start=new Date(d.getFullYear(),0,1);
+  return Math.ceil(((d-start)/86400000 + start.getDay()+1)/7);
+}
+function renderDrop(){
+  const grid=document.getElementById("dropGrid"); if(!grid) return;
+  const wk=weekNumber();
+  document.getElementById("dropWeek").textContent=t("drop.week").replace("{n}",wk);
+  const pool=ALL_BRANDS.filter(b=>b.niche);
+  const picks=[];
+  for(let i=0;i<10 && pool.length;i++){
+    // simple deterministic spread through the catalogue
+    picks.push(pool[(wk*37 + i*89) % pool.length]);
+  }
+  grid.innerHTML=picks.map((b,i)=>`
+    <a class="drop-card" href="/brand/${slugify(b.brand)}" data-route>
+      <div class="drop-num">${String(i+1).padStart(2,"0")}</div>
+      <div class="drop-name">${esc(b.brand)}</div>
+      <div class="drop-niche">${esc(b.niche||"")}${b.country?" · "+esc(b.country):""}</div>
+    </a>`).join("");
+}
+
+function initDropForm(){
+  const f=document.getElementById("dropForm"); if(!f) return;
+  const input=document.getElementById("dropEmail");
+  input.placeholder=t("drop.email");
+  f.onsubmit=async e=>{
+    e.preventDefault();
+    const msg=document.getElementById("dropMsg");
+    try{
+      const r=await fetch("/api/subscribe",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({email:input.value})});
+      msg.textContent = r.ok ? t("drop.joined") : t("drop.bad");
+      if(r.ok) input.value="";
+    }catch(e){ msg.textContent=t("drop.bad"); }
+  };
+}
+
+/* ============ routing ============
+   Real URLs so a brand or an item can be shared and the back button works.
+   /            landing
+   /feed        the whole catalogue
+   /brand/<slug>one brand and everything we have from it
+   /item/<id>   a single piece
+   /faq         questions                                            */
+const slugify=s=>(s||"").toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+function brandBySlug(sl){
+  const hit=ALL_BRANDS.find(b=>slugify(b.brand)===sl);
+  if(hit) return hit;
+  // some brands only exist through their products (hand-added ones)
+  const item=everything().find(i=>slugify(i.brand)===sl);
+  if(!item) return null;
+  let site=null;
+  try{ if(item.link) site=new URL(item.link).origin; }catch(e){}
+  return {brand:item.brand, niche:"", country:"", kind:"clothing",
+          site:site||KNOWN_SITES[item.brand.toLowerCase()]||null,
+          handle:item.src&&item.src.startsWith("@")?item.src:null};
+}
+
+function go(path,replace){
+  if(location.pathname===path) return;
+  history[replace?"replaceState":"pushState"]({},"",path);
+  route();
+}
+document.addEventListener("click",e=>{
+  const a=e.target.closest("a[data-route]");
+  if(!a) return;
+  e.preventDefault();
+  go(a.getAttribute("href"));
+});
+window.addEventListener("popstate",route);
+
+function showOnly(ids){
+  const all=["heroSection","tiltSection","vibesSection","featuredSection","feedSection",
+             "community","faq","brandPage","itemPage"];
+  all.forEach(id=>{const el=document.getElementById(id); if(el) el.style.display=ids.includes(id)?"":"none";});
+}
+
+function route(){
+  const p=decodeURIComponent(location.pathname.replace(/\/+$/,"")||"/");
+  closeAll();
+  if(p.startsWith("/brand/")){ renderBrandPage(p.slice(7)); return; }
+  if(p.startsWith("/item/")){  renderItemPage(p.slice(6));  return; }
+  if(p==="/feed"){
+    showOnly(["feedSection"]);
+    feedOpen=true; feedShown=PAGE; render(); renderFilters();
+    document.getElementById("feedTitle").textContent=t("feed.title");
+    window.scrollTo(0,0); return;
+  }
+  if(p==="/faq"){ showOnly(["faq"]); window.scrollTo(0,0); return; }
+  // landing
+  showOnly(["heroSection","tiltSection","vibesSection","featuredSection","feedSection","community","faq"]);
+  feedOpen=false; feedShown=PAGE; render();
+  document.getElementById("feedTitle").textContent=t("feed.title");
+}
+
+function renderBrandPage(sl){
+  const b=brandBySlug(sl);
+  showOnly(["brandPage"]);
+  const box=document.getElementById("brandPage");
+  if(!b){ box.innerHTML=`<div class="wrap" style="padding:60px 20px"><p class="spot-hint">${t("brand.missing")}</p>
+      <a href="/" data-route class="btn btn-ghost" style="display:inline-block;margin-top:14px;padding:10px 18px">${t("brand.back")}</a></div>`; return; }
+  const items=everything().filter(i=>i.brand===b.brand);
+  const link=b.site||(b.handle?"https://instagram.com/"+b.handle.replace("@",""):null);
+  box.innerHTML=`<div class="wrap brand-page">
+      <a href="/" data-route class="brand-back">← ${t("brand.back")}</a>
+      <div class="brand-hero">
+        <div class="bc-mark big">${esc(b.brand.split(/\s+/).slice(0,2).map(w=>w[0]).join("").toUpperCase())}</div>
+        <div>
+          <h1 class="anton">${esc(b.brand)}</h1>
+          <p class="brand-meta">${esc(b.niche||"")}${b.country?" · "+esc(b.country):""}${b.kind==="art-decor"?" · art / decor":""}</p>
+          <div class="brand-actions">
+            ${link?`<a class="btn btn-primary" href="${link}" target="_blank" rel="noopener noreferrer">${t("brand.shop")} ↗</a>`:""}
+            ${b.handle?`<a class="btn btn-ghost" href="https://instagram.com/${b.handle.replace("@","")}" target="_blank" rel="noopener noreferrer">${esc(b.handle)}</a>`:""}
+          </div>
+        </div>
+      </div>
+      <div class="section-head"><h2>${items.length} ${t("brand.pieces")}</h2></div>
+      <div class="grid" id="brandGrid">${items.map(i=>cardHTML(i)).join("") ||
+        `<p class="spot-hint">${t("brand.nopieces")}</p>`}</div>
+    </div>`;
+  box.querySelectorAll(".card").forEach(c=> c.onclick=()=>go("/item/"+c.dataset.id));
+  observeReveal(); window.scrollTo(0,0);
+}
+
+function renderItemPage(id){
+  const it=everything().find(x=>String(x.id)===String(id));
+  showOnly(["itemPage"]);
+  const box=document.getElementById("itemPage");
+  if(!it){ box.innerHTML=`<div class="wrap" style="padding:60px 20px"><p class="spot-hint">${t("item.missing")}</p>
+      <a href="/" data-route class="btn btn-ghost" style="display:inline-block;margin-top:14px;padding:10px 18px">${t("brand.back")}</a></div>`; return; }
+  const b=knownBrand(it.brand);
+  const shop=it.link||(b&&b.site)||null;
+  box.innerHTML=`<div class="wrap item-page">
+      <a href="/brand/${slugify(it.brand)}" data-route class="brand-back">← ${esc(it.brand)}</a>
+      <div class="item-layout">
+        <div class="item-photo"><img src="${PHOTO(it)}" alt="${esc(it.name)}"></div>
+        <div>
+          <div class="brand" style="color:var(--accent)">${esc(it.brand)}</div>
+          <h1 class="anton">${esc(it.name)}</h1>
+          <div style="margin:18px 0 6px">
+            <div class="kv"><span>${t("detail.price")}</span><b>${it.price||t("detail.na")}</b></div>
+            <div class="kv"><span>${t("detail.category")}</span><b>${t("c."+it.cat)||it.cat}</b></div>
+            <div class="kv"><span>${t("detail.spotted")}</span><b>${esc(it.src||"")}</b></div>
+          </div>
+          <div class="modal-cta" style="margin-top:18px">
+            ${shop?`<a class="btn btn-primary" style="text-align:center" href="${shop}" target="_blank" rel="noopener noreferrer">${t("detail.buy")} ↗</a>`:""}
+            <button class="btn btn-ghost watch-btn" id="watchBtn"></button>
+            <a class="btn btn-ghost" style="text-align:center" href="/brand/${slugify(it.brand)}" data-route>${t("item.more")}</a>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  const wb=document.getElementById("watchBtn");
+  paintWatchBtn(wb, WATCHES.has(String(it.id)));
+  wb.onclick=()=>toggleWatch(it,wb);
+  window.scrollTo(0,0);
+}
+
+/* ============ init ============ */
+applyI18n();
+route();
+loadAlerts();
+
+/* installable app: register the worker, and accept links shared into it */
+if("serviceWorker" in navigator){
+  addEventListener("load",()=>navigator.serviceWorker.register("/sw.js").catch(()=>{}));
+}
+(function sharedLink(){
+  const q=new URLSearchParams(location.search);
+  const shared=q.get("url")||q.get("text");
+  if(shared && /tiktok\.com|instagram\.com/.test(shared)){
+    renderSubmitForm(); openOverlay("submitOverlay");
+    const i=document.getElementById("spotUrl");
+    if(i){ i.value=shared.match(/https?:\/\/\S+/)?.[0]||shared; runDetect(); }
+  } else if(q.get("spot")){
+    renderSubmitForm(); openOverlay("submitOverlay");
+  }
+})();
+</script>
+</body>
+</html>

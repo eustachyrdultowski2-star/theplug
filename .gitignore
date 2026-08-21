@@ -1,0 +1,15 @@
+# secrets — never publish these
+.env
+data/
+.cache/
+contacts.json
+outreach_list.csv
+emails/
+emails_preview.txt
+send_batch.json
+brands_full.json
+shop_data.json
+_raw_sample.json
+items_generated.js
+__pycache__/
+*.pyc
