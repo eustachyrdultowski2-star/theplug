@@ -353,8 +353,21 @@ main{padding:34px 0 90px}
 .fan-dots span{width:7px;height:7px;border-radius:50%;background:color-mix(in srgb,var(--fg) 16%,transparent);
   transition:.3s}
 .fan-dots span.on{background:var(--accent);transform:scale(1.35)}
-@media(max-width:900px){.fan{height:360px}.fan-card{width:170px}}
-@media(max-width:560px){.fan{height:320px}.fan-card{width:150px}}
+@media(max-width:900px){.fan{height:380px}.fan-card{width:180px}}
+/* A fan needs room to spread. On a phone it just overlaps, so swap it
+   for a row you can flick through. */
+@media(max-width:768px){
+  .fan{height:auto;display:flex;justify-content:flex-start;align-items:stretch;
+    gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;
+    padding:4px 4px 14px;margin:0 -20px;padding-left:20px;padding-right:20px;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .fan::-webkit-scrollbar{display:none}
+  .fan-card{position:relative!important;flex:0 0 74%;max-width:280px;width:auto;
+    transform:none!important;transition:none;scroll-snap-align:center;
+    opacity:1!important;pointer-events:auto!important;z-index:1!important;
+    box-shadow:0 10px 26px -14px rgba(0,0,0,.7)}
+  .fan-nav{margin-top:2px}
+}
 @media (prefers-reduced-motion:reduce){.fan-card{transition:none}}
 
 /* community ID form + reward */
@@ -1647,6 +1660,12 @@ function mountFan(box,items,cardHTMLFn,onClick){
   };
 
   function layout(hovered){
+    // phones get the scroll-snap row from CSS; positioning would undo it
+    if(matchMedia("(max-width:768px)").matches){
+      cards.forEach(el=>{el.style.transform="";el.style.opacity="";el.style.zIndex="";
+                         el.style.pointerEvents="";el.style.transitionDelay="";});
+      return;
+    }
     const map=visible(), mult=fanMult(), count=paged?FAN_MAX:total;
     const centerSlot=count>>1;
     cards.forEach((el,i)=>{
