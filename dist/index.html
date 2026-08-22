@@ -2936,6 +2936,9 @@ function showOnly(ids){
    list sign in until the privacy link actually resolves, and people deserve
    to know what the server keeps. If the app starts storing something new,
    say so here too. */
+const CONTACT = "hello@theplug.app";   // one place; change it here only
+const BRAND_COUNT = (typeof BRANDS!=="undefined") ? BRANDS.length : 0;
+const ITEM_COUNT  = (typeof CATALOG!=="undefined") ? CATALOG.length : 0;
 const LEGAL_UPDATED = "2026-08-22";
 const LEGAL = {
  en:[
@@ -3049,9 +3052,6 @@ const LEGAL = {
    Same shape as LEGAL: a title and a handful of sections, rendered into the
    page the router already shows. The two counts are read from the catalog so
    the copy cannot drift away from what is actually in the database. */
-const CONTACT = "hello@theplug.app";   // one place; change it here only
-const BRAND_COUNT = (typeof BRANDS!=="undefined") ? BRANDS.length : 0;
-const ITEM_COUNT  = (typeof CATALOG!=="undefined") ? CATALOG.length : 0;
 const DOCS = {
  en:{
   about:{title:"About The Plug", blocks:[
