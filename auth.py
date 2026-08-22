@@ -71,10 +71,17 @@ def login(email: str, password: str):
     return public(user), None
 
 
+# what someone dresses for; "both" is the default and shows everything
+PREFS = ("mens", "womens", "both")
+AVATAR_MAX = 240_000        # the browser sends a 256px jpeg, this is generous
+
+
 def public(user):
     return {"id": user["id"], "email": user["email"],
             "name": user.get("name"), "plus": bool(user.get("plus")),
             "handle": user.get("handle") or handle_for(user),
+            "avatar": user.get("avatar") or None,
+            "pref": user.get("pref") or "both",
             "shared": bool(user.get("shared"))}
 
 
@@ -133,8 +140,9 @@ def by_handle(handle: str):
     return next((u for u in _users() if (u.get("handle") or handle_for(u)) == h), None)
 
 
-def set_profile(user_id: str, shared=None, handle=None, name=None):
-    """Rename, re-handle, or flip a wardrobe between private and public."""
+def set_profile(user_id: str, shared=None, handle=None, name=None,
+                avatar=None, pref=None):
+    """Rename, re-handle, repicture, or flip a wardrobe private and public."""
     err = [None]
 
     def upd(users):
@@ -151,6 +159,22 @@ def set_profile(user_id: str, shared=None, handle=None, name=None):
                 u["handle"] = want
             if name is not None:
                 u["name"] = name.strip()[:24] or u["name"]
+            if avatar is not None:
+                # "" clears the picture; anything oversized is refused rather
+                # than quietly truncated into a broken image
+                pic = (avatar or "").strip()
+                if not pic:
+                    u.pop("avatar", None)
+                elif not pic.startswith("data:image/") or len(pic) > AVATAR_MAX:
+                    err[0] = "bad_avatar"
+                    return users
+                else:
+                    u["avatar"] = pic
+            if pref is not None:
+                if pref not in PREFS:
+                    err[0] = "bad_pref"
+                    return users
+                u["pref"] = pref
             if shared is not None:
                 u["shared"] = bool(shared)
             return users

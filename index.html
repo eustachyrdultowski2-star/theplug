@@ -296,6 +296,40 @@ main{padding:34px 0 90px}
 .likes{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--faint)}
 
 
+/* ---------- your card, and the tabs under Help ID ---------- */
+.sub-tabs{display:flex;gap:6px;margin:0 0 18px;flex-wrap:wrap}
+.sub-tab{background:var(--surface);border:1px solid var(--border);border-radius:999px;
+  padding:9px 17px;font-size:13.5px;font-weight:600;color:var(--muted);cursor:pointer;
+  font-family:inherit;transition:.2s}
+.sub-tab:hover{color:var(--fg)}
+.sub-tab.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.me-head{display:flex;align-items:center;gap:18px;margin-bottom:26px}
+.me-pic{position:relative;width:96px;height:96px;flex:none;border-radius:50%;overflow:hidden;
+  background:var(--surface-2);border:1px solid var(--border);cursor:pointer;display:grid;place-items:center}
+.me-pic img{width:100%;height:100%;object-fit:cover}
+.me-pic span{font-family:Anton,sans-serif;font-size:32px;color:var(--faint)}
+.me-pic .edit{position:absolute;inset:auto 0 0 0;background:rgba(0,0,0,.62);color:#fff;
+  font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;text-align:center;padding:4px 0}
+.me-who b{display:block;font-family:Anton,sans-serif;font-size:28px;line-height:1.1}
+.me-who span{display:block;color:var(--muted);font-size:13.5px;margin-top:3px}
+.me-field{margin-bottom:16px}
+.me-field label{display:block;font-size:12px;font-weight:700;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--faint);margin-bottom:7px}
+.me-field input{width:100%;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:13px 15px;color:var(--fg);font-size:15px;font-family:inherit;outline:none}
+.me-field input:focus{border-color:var(--accent)}
+.me-chips{display:flex;gap:8px;flex-wrap:wrap}
+.me-stats{display:flex;gap:22px;margin:22px 0 4px;flex-wrap:wrap}
+.me-stats div b{font-family:Anton,sans-serif;font-size:22px;display:block}
+.me-stats div span{font-size:12px;color:var(--muted)}
+.me-msg{font-size:13px;color:var(--accent);min-height:18px;margin-top:10px}
+.mine-row{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px}
+.mine-row .b{flex:1;min-width:0}
+.mine-row .b b{display:block;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mine-row .b span{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+.mine-when{font-size:12px;color:var(--faint);white-space:nowrap}
+
 /* ---------- one video, several slides ---------- */
 .item-slide{font-family:Anton,sans-serif;font-size:12px;letter-spacing:.12em;text-transform:uppercase;
   color:var(--accent);margin:14px 0 7px}
@@ -326,6 +360,7 @@ main{padding:34px 0 90px}
   mask-composite:exclude}
 .card:hover::before,.card:hover::after{opacity:1}
 @media(hover:none){.card::before,.card::after{display:none}}
+
 
 /* ---------- recently checked ---------- */
 .rc-row{display:flex;align-items:center;gap:14px;padding:13px 15px;background:var(--surface);
@@ -1129,11 +1164,19 @@ main{padding:34px 0 90px}
       <h2 class="anton" style="font-size:24px;margin:0" data-i18n="community.title">Help ID these</h2>
     </div>
     <p style="color:var(--muted);font-size:14px;margin:0 0 14px;max-width:640px" data-i18n="community.sub">Somebody spotted these in a reel but nobody knows the brand yet. Recognise one? Tag it and get credit.</p>
-    <div class="reward-hint">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.8 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z"/></svg>
-      <span data-i18n="id.hint">Every correct ID earns you a free TikTok look-up.</span>
+    <div class="sub-tabs" id="idTabs"></div>
+    <div id="idPaneQueue">
+      <div class="reward-hint">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.8 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z"/></svg>
+        <span data-i18n="id.hint">Every correct ID earns you a free TikTok look-up.</span>
+      </div>
+      <div class="grid" id="pendingGrid"></div>
     </div>
-    <div class="grid" id="pendingGrid"></div>
+    <div id="idPaneBoard" style="display:none">
+      <p class="spot-hint" style="margin:0 0 14px" data-i18n="board.sub">Confirmed IDs this season.</p>
+      <div class="board" id="boardMini"></div>
+    </div>
+    <div id="idPaneMine" style="display:none"><div id="myIdsBody"></div></div>
   </section>
 </main>
 
@@ -1174,6 +1217,11 @@ main{padding:34px 0 90px}
 <!-- your wardrobe: what you own, what you want, and who gets to see it -->
 <section class="legal-wrap" id="closetPage" style="display:none">
   <div class="wrap" id="closetBody"></div>
+</section>
+
+<!-- your own card: picture, name, handle, what you dress for -->
+<section class="legal-wrap" id="mePage" style="display:none">
+  <div class="wrap" id="meBody"></div>
 </section>
 
 <!-- the last links, pieces and searches, kept in this browser only -->
@@ -1357,6 +1405,23 @@ const I18N = {
     "profile.since":"Here since {d}",
     "profile.back":"Back to The Plug",
     "dock.closet":"Wardrobe",
+    "me.title":"Your card",
+    "me.sub":"How you show up on the leaderboard and on your public wardrobe.",
+    "me.photo":"Change",
+    "me.name":"Display name",
+    "me.handle":"Handle",
+    "me.pref":"What you dress for",
+    "me.mens":"Menswear","me.womens":"Womenswear","me.both":"Everything",
+    "me.public":"Public wardrobe","me.publicOn":"On — anyone with the link can see it",
+    "me.publicOff":"Off — only you",
+    "me.save":"Save","me.saved":"Saved.","me.taken":"That handle is taken.",
+    "me.bigpic":"That picture is too large.",
+    "me.signin":"Sign in to have a card.",
+    "me.points":"points","me.ids":"IDs","me.saves":"saved",
+    "id.tab.queue":"Help ID","id.tab.board":"Leaderboard","id.tab.mine":"My IDs",
+    "mine.asks":"Your requests","mine.answers":"Your answers",
+    "mine.waiting":"waiting for an answer","mine.none":"Nothing here yet — ask about a fit nobody could name, or ID one for somebody else.",
+    "mine.ask":"Ask about a fit",
     "hero.photo":"…or paste a screenshot — no link needed",
     "photo.dropfull":"Drop the screenshot anywhere",
     "share.install":"Install The Plug and share straight from TikTok — no copying links.",
@@ -1520,6 +1585,23 @@ const I18N = {
     "profile.since":"Tu od {d}",
     "profile.back":"Wr\u00f3\u0107 do The Plug",
     "dock.closet":"Szafa",
+    "me.title":"Twoja karta",
+    "me.sub":"Tak wyglądasz w rankingu i na swojej publicznej szafie.",
+    "me.photo":"Zmień",
+    "me.name":"Nazwa",
+    "me.handle":"Nick",
+    "me.pref":"Co nosisz",
+    "me.mens":"Męskie","me.womens":"Damskie","me.both":"Wszystko",
+    "me.public":"Publiczna szafa","me.publicOn":"Włączona — każdy z linkiem ją zobaczy",
+    "me.publicOff":"Wyłączona — tylko Ty",
+    "me.save":"Zapisz","me.saved":"Zapisane.","me.taken":"Ten nick jest zajęty.",
+    "me.bigpic":"To zdjęcie jest za duże.",
+    "me.signin":"Zaloguj się, żeby mieć kartę.",
+    "me.points":"punktów","me.ids":"rozpoznań","me.saves":"zapisanych",
+    "id.tab.queue":"Rozpoznaj","id.tab.board":"Ranking","id.tab.mine":"Moje",
+    "mine.asks":"Twoje prośby","mine.answers":"Twoje odpowiedzi",
+    "mine.waiting":"czeka na odpowiedź","mine.none":"Jeszcze pusto — zapytaj o fit, którego nikt nie rozpoznał, albo rozpoznaj coś komuś.",
+    "mine.ask":"Zapytaj o fit",
     "hero.photo":"…albo wklej zrzut ekranu — link niepotrzebny",
     "photo.dropfull":"Upuść zrzut gdziekolwiek",
     "share.install":"Zainstaluj The Plug i udostępniaj prosto z TikToka — bez kopiowania linków.",
@@ -2204,6 +2286,7 @@ function submitId(item,named,row){
   } else {
     toast(t("rank.signin"));
   }
+  myIdsPush("answers",{key:String(item.id)+v.label,brand:v.label,note:item.note||""});
   addBrandToDB({brand:v.label,handle:"@"+voteKey(v.label),indie:true});
 }
 
@@ -2257,6 +2340,7 @@ async function runDetect(){
   const box=document.getElementById("spotResult");
   const btn=document.getElementById("spotBtn");
   const url=(input.value||"").trim();
+  lastAsked=url;
   if(!url){box.innerHTML=`<p class="spot-hint">${t("spot.ph")}</p>`;return;}
   if(freeLookups<=0){ renderLimit(box); return; }
   btn.disabled=true;
@@ -2567,7 +2651,10 @@ function renderDetectResult(data,box){
   document.getElementById("tryAgain").onclick=()=>{const i=document.getElementById("spotUrl");i.value="";i.focus();box.innerHTML="";};
 }
 
+let lastAsked="";                 // the link whose answer nobody knew
+
 function showCommunityDone(){
+  if(lastAsked) myIdsPush("asks",{key:lastAsked,url:lastAsked});
   document.getElementById("submitBody").innerHTML=`
     <div class="form-success">
       <div class="check"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg></div>
@@ -2750,6 +2837,196 @@ function loadMe(){
 }
 
 
+/* ---------- your card ------------------------------------------------------
+   The leaderboard and the public wardrobe both show a person, so give people
+   somewhere to say who that is: a picture, a name, a handle, and what they
+   actually dress for. */
+function meInitials(){
+  const src=(ME&&(ME.name||ME.handle||ME.email))||"?";
+  return src.trim().slice(0,2).toUpperCase();
+}
+
+/* A phone camera roll picture is several megabytes; the store keeps a 256px
+   square instead, cropped from the middle. */
+function shrinkAvatar(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onerror=reject;
+    reader.onload=()=>{
+      const img=new Image();
+      img.onerror=reject;
+      img.onload=()=>{
+        const side=Math.min(img.width,img.height), out=256;
+        const c=document.createElement("canvas");
+        c.width=c.height=out;
+        c.getContext("2d").drawImage(img,(img.width-side)/2,(img.height-side)/2,side,side,0,0,out,out);
+        resolve(c.toDataURL("image/jpeg",0.82));
+      };
+      img.src=reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderMe(){
+  showOnly(["mePage"]); window.scrollTo(0,0);
+  const box=document.getElementById("meBody");
+
+  if(!ME){
+    box.innerHTML=`<div class="legal-head"><h1>${t("me.title")}</h1></div>
+      <div class="empty-note"><p>${t("me.signin")}</p>
+      <button class="btn btn-ghost" id="meSignIn">${t("auth.nav")}</button></div>`;
+    document.getElementById("meSignIn").onclick=()=>{renderAuth("signin");openOverlay("authOverlay");};
+    return;
+  }
+
+  let pic=ME.avatar||"";
+  let pref=ME.pref||"both";
+  const chip=(v,label)=>`<button class="sub-tab${pref===v?" on":""}" data-pref="${v}">${label}</button>`;
+
+  box.innerHTML=`
+    <div class="legal-head"><h1>${t("me.title")}</h1>
+      <p class="legal-updated">${t("me.sub")}</p></div>
+
+    <div class="me-head">
+      <div class="me-pic" id="mePic">
+        ${pic?`<img src="${esc(pic)}" alt="">`:`<span>${meInitials()}</span>`}
+        <div class="edit">${t("me.photo")}</div>
+      </div>
+      <div class="me-who">
+        <b>${esc(ME.name||ME.handle||"")}</b>
+        <span>@${esc(ME.handle||"")} · ${esc(ME.email)}</span>
+      </div>
+      <input type="file" id="meFile" accept="image/*" hidden>
+    </div>
+
+    <div class="me-stats">
+      <div><b>${SCORE?SCORE.points||0:0}</b><span>${t("me.points")}</span></div>
+      <div><b>${SCORE?SCORE.ids||0:0}</b><span>${t("me.ids")}</span></div>
+      <div><b>${SAVED.size}</b><span>${t("me.saves")}</span></div>
+    </div>
+
+    <div class="me-field"><label>${t("me.name")}</label>
+      <input id="meName" type="text" maxlength="24" value="${esc(ME.name||"")}"></div>
+    <div class="me-field"><label>${t("me.handle")}</label>
+      <input id="meHandle" type="text" maxlength="20" value="${esc(ME.handle||"")}"></div>
+
+    <div class="me-field"><label>${t("me.pref")}</label>
+      <div class="me-chips" id="mePrefs">
+        ${chip("mens",t("me.mens"))}${chip("womens",t("me.womens"))}${chip("both",t("me.both"))}
+      </div>
+    </div>
+
+    <div class="me-field"><label>${t("me.public")}</label>
+      <button class="sub-tab${ME.shared?" on":""}" id="meShared">
+        ${ME.shared?t("me.publicOn"):t("me.publicOff")}</button>
+    </div>
+
+    <button class="btn btn-primary" style="padding:13px 30px" id="meSave">${t("me.save")}</button>
+    <div class="me-msg" id="meMsg"></div>`;
+
+  const file=document.getElementById("meFile");
+  document.getElementById("mePic").onclick=()=>file.click();
+  file.onchange=async()=>{
+    const f=file.files&&file.files[0];
+    if(!f) return;
+    try{
+      pic=await shrinkAvatar(f);
+      document.getElementById("mePic").innerHTML=
+        `<img src="${esc(pic)}" alt=""><div class="edit">${t("me.photo")}</div>`;
+    }catch(e){ document.getElementById("meMsg").textContent=t("me.bigpic"); }
+  };
+
+  box.querySelectorAll("[data-pref]").forEach(b=>b.onclick=()=>{
+    pref=b.dataset.pref;
+    box.querySelectorAll("[data-pref]").forEach(o=>o.classList.toggle("on",o===b));
+  });
+
+  let shared=!!ME.shared;
+  const shareBtn=document.getElementById("meShared");
+  shareBtn.onclick=()=>{
+    shared=!shared;
+    shareBtn.classList.toggle("on",shared);
+    shareBtn.textContent=shared?t("me.publicOn"):t("me.publicOff");
+  };
+
+  document.getElementById("meSave").onclick=async()=>{
+    const msg=document.getElementById("meMsg");
+    msg.textContent="";
+    const body={name:document.getElementById("meName").value,
+                handle:document.getElementById("meHandle").value,
+                pref:pref, shared:shared, avatar:pic};
+    try{
+      const r=await fetch("/api/profile",{method:"POST",
+        headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+      const d=await r.json();
+      if(!r.ok){ msg.textContent = d.error==="handle_taken" ? t("me.taken")
+                 : d.error==="bad_avatar" ? t("me.bigpic") : String(d.error||""); return; }
+      ME=d.user; paintAccount(); msg.textContent=t("me.saved");
+      renderMe();
+    }catch(e){ msg.textContent=String(e.message||e); }
+  };
+}
+
+/* ---------- what you asked, and what you answered --------------------------
+   Kept in this browser: the community queue is not a server queue yet, so
+   promising otherwise would be a lie. */
+const MYID_KEY="plug.myids";
+function myIds(){
+  try{ return JSON.parse(localStorage.getItem(MYID_KEY))||{asks:[],answers:[]}; }
+  catch(e){ return {asks:[],answers:[]}; }
+}
+function myIdsPush(kind,row){
+  const all=myIds();
+  const list=(all[kind]||[]).filter(r=>r.key!==row.key);
+  list.unshift(Object.assign({when:Date.now()},row));
+  all[kind]=list.slice(0,40);
+  try{ localStorage.setItem(MYID_KEY,JSON.stringify(all)); }catch(e){}
+}
+
+function renderMyIds(){
+  const box=document.getElementById("myIdsBody");
+  if(!box) return;
+  const all=myIds();
+  const row=(main,sub,when)=>`<div class="mine-row"><div class="b">
+      <b>${esc(main)}</b><span>${esc(sub)}</span></div>
+      <span class="mine-when">${recentAgo(when)}</span></div>`;
+
+  const asks=(all.asks||[]).map(a=>row(recentShortUrl(a.url||a.note||""),
+      a.answer?a.answer:t("mine.waiting"),a.when)).join("");
+  const answers=(all.answers||[]).map(a=>row(a.brand||"",a.note||"",a.when)).join("");
+
+  if(!asks && !answers){
+    box.innerHTML=`<div class="empty-note"><p>${t("mine.none")}</p>
+      <button class="btn btn-ghost" id="mineAsk">${t("mine.ask")}</button></div>`;
+    document.getElementById("mineAsk").onclick=()=>{
+      renderSubmitForm(); openOverlay("submitOverlay");
+      setTimeout(()=>document.getElementById("spotUrl")?.focus(),150);
+    };
+    return;
+  }
+  const block=(title,body)=>body?`<div class="section-head" style="margin:6px 0 12px"><h2>${title}</h2></div>${body}`:"";
+  box.innerHTML=block(t("mine.asks"),asks)+block(t("mine.answers"),answers);
+}
+
+/* the three faces of Help ID: the queue, the ranking, and your own history */
+let idTab="queue";
+function renderIdTabs(){
+  const bar=document.getElementById("idTabs");
+  if(!bar) return;
+  const tabs=[["queue","id.tab.queue"],["board","id.tab.board"],["mine","id.tab.mine"]];
+  bar.innerHTML=tabs.map(([k,i])=>
+    `<button class="sub-tab${idTab===k?" on":""}" data-idtab="${k}">${t(i)}</button>`).join("");
+  bar.querySelectorAll("[data-idtab]").forEach(b=>b.onclick=()=>{
+    idTab=b.dataset.idtab; renderIdTabs();
+  });
+  const show=(id,on)=>{const e=document.getElementById(id); if(e) e.style.display=on?"":"none";};
+  show("idPaneQueue",idTab==="queue");
+  show("idPaneBoard",idTab==="board");
+  show("idPaneMine",idTab==="mine");
+  if(idTab==="board") renderBoard();
+  if(idTab==="mine") renderMyIds();
+}
 /* ---------- recently checked -----------------------------------------------
    A lookup you cannot find your way back to is a lookup you run twice. The
    last links, pieces and searches live in this browser and nowhere else — no
@@ -3162,10 +3439,14 @@ function openAccountMenu(){
       <div class="kv"><span>${t("acct.saved")}</span><b>${SAVED.size}</b></div>
       <div class="kv"><span>${t("acct.plan")}</span><b>${ME.plus?"Plug+":t("acct.free")}</b></div>
       ${rankBlockHTML(SCORE)}
-      <button class="btn btn-ghost" style="width:100%;padding:13px;margin-top:16px" id="signOut">${t("acct.signout")}</button>
+      <button class="btn btn-primary" style="width:100%;padding:13px;margin-top:16px" id="toProfile">${t("me.title")}</button>
+      <button class="btn btn-ghost" style="width:100%;padding:13px;margin-top:10px" id="signOut">${t("acct.signout")}</button>
       <button class="acct-danger" id="killAccount">${t("acct.delete")}</button>
     </div>`;
   openOverlay("authOverlay");
+  document.getElementById("toProfile").onclick=()=>{
+    closeOverlay("authOverlay"); go("/profile");
+  };
   document.getElementById("signOut").onclick=()=>{
     fetch("/api/auth/logout",{method:"POST"}).finally(()=>{
       ME=null; SAVED=new Set(); paintAccount(); render(); closeOverlay("authOverlay");
@@ -3653,11 +3934,13 @@ function renderAlerts(){
 }
 
 async function renderBoard(){
-  const box=document.getElementById("board"); if(!box) return;
+  // two homes now: the landing page section and the tab under Help ID
+  const boxes=["board","boardMini"].map(id=>document.getElementById(id)).filter(Boolean);
+  if(!boxes.length) return;
   let rows=[];
   try{ rows=(await (await fetch("/api/leaderboard")).json()).board||[]; }catch(e){}
   const mine = ME && ME.id;
-  box.innerHTML=rows.map((r,i)=>`
+  const html=rows.map((r,i)=>`
     <div class="board-row${r.user==="you"?" me":""}">
       <span class="board-rank">${i+1}</span>
       <span class="board-user">${esc(r.user)}${mine&&r.id===mine?` · ${t("board.you")}`:""}
@@ -3665,6 +3948,7 @@ async function renderBoard(){
         <span class="board-ids">· ${r.ids||0} ${t("board.ids")}</span></span>
       <span class="board-pts">${r.points} <span style="font-size:11px;opacity:.6">${t("board.pts")}</span></span>
     </div>`).join("");
+  boxes.forEach(b=>b.innerHTML=html);
 }
 
 /* the drop is deterministic: same week -> same ten brands for everyone */
@@ -3783,7 +4067,7 @@ function showOnly(ids){
   // the leaderboard ended up trailing the wardrobe.
   const all=["heroSection","tiltSection","vibesSection","featuredSection","feedSection",
              "dropSection","boardSection","community","faq","brandPage","itemPage",
-             "adminPage","legalPage","closetPage","profilePage","recentPage"];
+             "adminPage","legalPage","closetPage","profilePage","recentPage","mePage"];
   all.forEach(id=>{const el=document.getElementById(id); if(el) el.style.display=ids.includes(id)?"":"none";});
 }
 
@@ -4103,7 +4387,8 @@ function route(){
     window.scrollTo(0,0); return;
   }
   if(p==="/faq"){ showOnly(["faq"]); window.scrollTo(0,0); return; }
-  if(p==="/help-id"){ showOnly(["community","boardSection"]); renderBoard(); window.scrollTo(0,0); return; }
+  if(p==="/help-id"){ showOnly(["community"]); renderIdTabs(); window.scrollTo(0,0); return; }
+  if(p==="/profile"){ renderMe(); return; }
   if(p==="/recent"){ renderRecent(); return; }
   if(p==="/closet"){ renderCloset(); return; }
   if(p.startsWith("/u/")){ renderProfile(decodeURIComponent(p.slice(3))); return; }

@@ -247,7 +247,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     me["id"],
                     shared=body.get("shared") if "shared" in body else None,
                     handle=body.get("handle") if "handle" in body else None,
-                    name=body.get("name") if "name" in body else None)
+                    name=body.get("name") if "name" in body else None,
+                    avatar=body.get("avatar") if "avatar" in body else None,
+                    pref=body.get("pref") if "pref" in body else None)
                 if err:
                     return self._json(400, {"error": err})
                 return self._json(200, {"user": user})
