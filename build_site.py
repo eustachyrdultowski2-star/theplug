@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Collect just the public files into dist/ — ready to drag onto a host.
 Anything secret (.env, scraped contacts, watch data) is left behind."""
-import json, os, re, shutil, sys
+import json, os, re, shutil, sys, time
 sys.stdout.reconfigure(encoding="utf-8")
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -44,6 +44,17 @@ if BEACON:
 # API, and wrangler.jsonc turns every unmatched path into index.html so the
 # client-side router can take it from there.
 shutil.copy2(os.path.join(HERE, "_headers"), DIST)
+
+# The worker keeps the shell in a named cache and never looks at it again, so
+# a returning visitor kept the catalog they first downloaded. Stamp the cache
+# name with this build and every deploy retires the old one.
+sw = os.path.join(DIST, "sw.js")
+if os.path.exists(sw):
+    src = open(sw, encoding="utf-8").read()
+    stamp = time.strftime("%Y%m%d%H%M%S")
+    src = src.replace('const CACHE = "plug-v1";', 'const CACHE = "plug-' + stamp + '";', 1)
+    open(sw, "w", encoding="utf-8").write(src)
+    print("shell cache:", "plug-" + stamp)
 
 # Search engines get a map of every public route. Brand pages are the whole
 # point of the catalog being public, so all of them go in.

@@ -1405,6 +1405,7 @@ const I18N = {
     "profile.since":"Here since {d}",
     "profile.back":"Back to The Plug",
     "dock.closet":"Wardrobe",
+    "filter.men":"Men","filter.women":"Women",
     "me.title":"Your card",
     "me.sub":"How you show up on the leaderboard and on your public wardrobe.",
     "me.photo":"Change",
@@ -1585,6 +1586,7 @@ const I18N = {
     "profile.since":"Tu od {d}",
     "profile.back":"Wr\u00f3\u0107 do The Plug",
     "dock.closet":"Szafa",
+    "filter.men":"Męskie","filter.women":"Damskie",
     "me.title":"Twoja karta",
     "me.sub":"Tak wyglądasz w rankingu i na swojej publicznej szafie.",
     "me.photo":"Zmień",
@@ -1818,6 +1820,11 @@ const FEATURED = [21, 11, 3];   // indie brands paying for a homepage slot
 
 /* ============ state ============ */
 let filterMode = "all";   // all | indie | big
+/* who the feed is cut for: null shows everything, "m" and "w" also keep the
+   unisex rail, because most of streetwear is cut for anybody. Your profile
+   sets it once; the chips override it whenever you like. */
+let filterGender = null;
+let genderTouched = false;
 let filterCat = null;
 let query = "";
 const PREVIEW_COUNT = 24;   // homepage taste, so the page stays scrollable
@@ -1857,9 +1864,19 @@ function renderFilters(){
   // clearing "All" also drops any vibe, so a category never silently
   // collapses to one result because a style filter was still on
   bar.appendChild(mk(t("filter.all"), !filterCat&&!filterStyle, ()=>{
-    filterCat=null;filterStyle=null;savedOnly=false;render();renderFilters();renderVibes();
+    filterCat=null;filterStyle=null;filterGender=null;genderTouched=true;
+    savedOnly=false;render();renderFilters();renderVibes();
     document.getElementById("feedTitle").textContent=t("feed.title");}));
   const sep=document.createElement("div");sep.className="chip-sep";bar.appendChild(sep);
+  [["m","filter.men"],["w","filter.women"]].forEach(([g,key])=>
+    bar.appendChild(mk(t(key), filterGender===g, ()=>{
+      filterGender = filterGender===g ? null : g;
+      genderTouched = true;                 // your choice outranks your profile
+      savedOnly=false;
+      render(); renderFilters();
+      if(filterGender) scrollToFeed();
+    })));
+  const sep2=document.createElement("div");sep2.className="chip-sep";bar.appendChild(sep2);
   CATS.forEach(c=> bar.appendChild(mk(t("c."+c), filterCat===c, ()=>{
     filterCat=filterCat===c?null:c;
     savedOnly=false;                       // a category means "show me everything again"
@@ -1875,6 +1892,8 @@ function renderFilters(){
 
 function matchItem(it){
   if(savedOnly && !SAVED.has(String(it.id))) return false;
+  // "u" is unisex and an untagged import counts as unisex too
+  if(filterGender && it.g && it.g!=="u" && it.g!==filterGender) return false;
   if(filterCat && it.cat!==filterCat) return false;
   if(filterStyle && it.style!==filterStyle) return false;
   if(query){
@@ -1953,7 +1972,11 @@ function render(){
   const pool = (searching || feedOpen)
     ? everything()
     : ITEMS.concat(IMPORTED.filter(it=>FEED_SET.has(it.id)));
-  const full=pool.filter(it=>!FEATURED.includes(it.id)).filter(matchItem);
+  let full=pool.filter(it=>!FEATURED.includes(it.id)).filter(matchItem);
+  if(filterGender){
+    // pieces actually cut for you first, the unisex rail behind them
+    full=full.slice().sort((a,b)=>(a.g===filterGender?0:1)-(b.g===filterGender?0:1));
+  }
   // the homepage shows a taste of the feed; the rest loads when you ask for it
   const limit = feedOpen ? feedShown : PREVIEW_COUNT;
   const list=full.slice(0,limit);
@@ -1964,6 +1987,7 @@ function render(){
     const shown=new Set(list.map(i=>i.brand));
     brandCards=ALL_BRANDS
       .filter(b=>!shown.has(b.brand) &&
+        (!filterGender || !b.g || b.g==="u" || b.g===filterGender) &&
         (b.brand+" "+b.niche+" "+b.country+" "+(b.handle||"")).toLowerCase().includes(q))
       .slice(0,24).map(brandCardHTML).join("");
   }
@@ -2832,7 +2856,9 @@ async function mountGoogle(){
 function loadMe(){
   return fetch("/api/me").then(r=>r.json()).then(d=>{
     ME=d.user; SAVED=new Set((d.saved||[]).map(String)); SCORE=d.score||null;
+    applyPrefToFeed();            // the card says what you dress for; obey it
     paintAccount();
+    if(filterGender){ renderFilters(); render(); }
   }).catch(()=>{});
 }
 
@@ -2866,6 +2892,12 @@ function shrinkAvatar(file){
     };
     reader.readAsDataURL(file);
   });
+}
+
+/* mens / womens / both on the card, m / w / null in the feed */
+function applyPrefToFeed(){
+  if(genderTouched || !ME) return;
+  filterGender = ME.pref==="mens" ? "m" : ME.pref==="womens" ? "w" : null;
 }
 
 function renderMe(){
@@ -2962,7 +2994,10 @@ function renderMe(){
       const d=await r.json();
       if(!r.ok){ msg.textContent = d.error==="handle_taken" ? t("me.taken")
                  : d.error==="bad_avatar" ? t("me.bigpic") : String(d.error||""); return; }
-      ME=d.user; paintAccount(); msg.textContent=t("me.saved");
+      ME=d.user;
+      genderTouched=false; applyPrefToFeed();      // saving the card re-aims the feed
+      paintAccount(); renderFilters(); render();
+      msg.textContent=t("me.saved");
       renderMe();
     }catch(e){ msg.textContent=String(e.message||e); }
   };
