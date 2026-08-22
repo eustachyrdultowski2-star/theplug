@@ -3461,9 +3461,12 @@ document.addEventListener("click",e=>{
 window.addEventListener("popstate",route);
 
 function showOnly(ids){
+  // every switchable section belongs here — one left out of the list stays on
+  // screen underneath the page you opened, which is how the weekly drop and
+  // the leaderboard ended up trailing the wardrobe.
   const all=["heroSection","tiltSection","vibesSection","featuredSection","feedSection",
-             "community","faq","brandPage","itemPage","adminPage","legalPage",
-             "closetPage","profilePage"];
+             "dropSection","boardSection","community","faq","brandPage","itemPage",
+             "adminPage","legalPage","closetPage","profilePage"];
   all.forEach(id=>{const el=document.getElementById(id); if(el) el.style.display=ids.includes(id)?"":"none";});
 }
 
@@ -3783,7 +3786,7 @@ function route(){
     window.scrollTo(0,0); return;
   }
   if(p==="/faq"){ showOnly(["faq"]); window.scrollTo(0,0); return; }
-  if(p==="/help-id"){ showOnly(["community"]); renderBoard(); window.scrollTo(0,0); return; }
+  if(p==="/help-id"){ showOnly(["community","boardSection"]); renderBoard(); window.scrollTo(0,0); return; }
   if(p==="/closet"){ renderCloset(); return; }
   if(p.startsWith("/u/")){ renderProfile(decodeURIComponent(p.slice(3))); return; }
   if(p==="/admin"){ renderAdmin(); return; }
@@ -3792,7 +3795,8 @@ function route(){
   // landing
   // the landing is an introduction, not the whole site: helping with IDs,
   // the questions and the wardrobe each have their own address now
-  showOnly(["heroSection","tiltSection","vibesSection","featuredSection","feedSection"]);
+  showOnly(["heroSection","tiltSection","vibesSection","featuredSection","feedSection",
+            "dropSection","boardSection"]);
   feedOpen=false; feedShown=PAGE; render();
   document.getElementById("feedTitle").textContent=t("feed.title");
   // footer links like /#vibeRow land here: the sections were just un-hidden,
