@@ -4,7 +4,7 @@
 Passwords are never stored — only a PBKDF2 hash with a per-user salt.
 Sessions are random tokens kept server-side, handed out in an HttpOnly cookie.
 """
-import hashlib, hmac, os, re, secrets, time
+import hashlib, hmac, json, os, re, secrets, time, urllib.parse, urllib.request
 import store
 
 ITERATIONS = 240_000          # deliberately slow, so a stolen file is not a password list
@@ -112,3 +112,46 @@ def toggle_saved(user_id: str, item_id, on: bool):
         all_saved[user_id] = ids
         return all_saved
     return store.update("saved", {}, upd).get(user_id, [])
+
+
+# ---------- sign in with Google ----------
+# The ID token is verified by Google's own tokeninfo endpoint, so we do not
+# have to implement RS256 verification (and cannot get it subtly wrong).
+def google_login(id_token: str):
+    client_id = (os.environ.get("GOOGLE_CLIENT_ID") or "").strip()
+    if not client_id:
+        return None, "google_not_configured"
+    if not id_token or len(id_token) > 4096:
+        return None, "bad_token"
+    try:
+        url = ("https://oauth2.googleapis.com/tokeninfo?id_token="
+               + urllib.parse.quote(id_token, safe=""))
+        with urllib.request.urlopen(url, timeout=10) as r:
+            info = json.load(r)
+    except Exception:
+        return None, "bad_token"
+
+    # the token must have been minted for *us*, and the address must be verified
+    if info.get("aud") != client_id:
+        return None, "wrong_audience"
+    if str(info.get("email_verified", "")).lower() not in ("true", "1"):
+        return None, "email_unverified"
+    email = (info.get("email") or "").strip().lower()
+    if not EMAIL_RE.match(email):
+        return None, "bad_email"
+
+    user = find_user(email)
+    if user:
+        return public(user), None
+
+    user = {
+        "id": secrets.token_hex(8),
+        "email": email,
+        "name": (info.get("given_name") or email.split("@")[0])[:24],
+        "password": hash_password(secrets.token_urlsafe(32)),  # unusable, they use Google
+        "google": True,
+        "plus": False,
+        "created": int(time.time()),
+    }
+    store.update("users", [], lambda us: us + [user])
+    return public(user), None

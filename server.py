@@ -89,6 +89,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     return self._json(401, {"error": "bad_key"})
                 return self._json(200, admin_stats())
 
+            if name == "/api/config":
+                return self._json(200, {"googleClientId":
+                                        (os.environ.get("GOOGLE_CLIENT_ID") or "").strip()})
+
             if name == "/api/me":
                 me = self._me()
                 return self._json(200, {"user": me,
@@ -112,7 +116,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if self.path not in ("/api/detect", "/api/image", "/api/watch",
                              "/api/subscribe", "/api/score",
                              "/api/auth/register", "/api/auth/login",
-                             "/api/auth/logout", "/api/save"):
+                             "/api/auth/logout", "/api/save", "/api/auth/google"):
             return self._json(404, {"error": "not found"})
         try:
             n = int(self.headers.get("Content-Length", 0))
@@ -126,6 +130,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
             if self.path == "/api/auth/login":
                 user, err = auth.login(body.get("email"), body.get("password"))
+                if err:
+                    return self._json(401, {"error": err})
+                self._set_cookie(auth.open_session(user["id"]))
+                return self._json(200, {"user": user, "saved": auth.saved_ids(user["id"])})
+
+            if self.path == "/api/auth/google":
+                user, err = auth.google_login(body.get("credential"))
                 if err:
                     return self._json(401, {"error": err})
                 self._set_cookie(auth.open_session(user["id"]))

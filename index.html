@@ -344,6 +344,10 @@ main{padding:34px 0 90px}
   background:var(--surface);border:1px solid var(--border);font-size:13.5px}
 .a-dim{color:var(--faint);white-space:nowrap}
 
+
+.google-slot{display:flex;justify-content:center;margin-bottom:10px;min-height:44px}
+.google-slot:empty{display:none}
+
 /* ---------- routed pages ---------- */
 .brand-page,.item-page{padding:26px 0 40px}
 .brand-back{display:inline-block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:20px;text-decoration:none}
@@ -2262,9 +2266,7 @@ function renderAuth(mode){
           <button class="auth-tab ${up?'':'on'}" data-mode="signin">${t("auth.signin")}</button>
           <button class="auth-tab ${up?'on':''}" data-mode="signup">${t("auth.signup")}</button>
         </div>
-        <button class="social-btn ig" data-social>${igIcon}${t("auth.instagram")}</button>
-        ${up?`<div class="ig-hint">${t("auth.ig_hint")}</div>`:``}
-        <button class="social-btn" data-social>${gIcon}${t("auth.google")}</button>
+        <div id="googleBtn" class="google-slot"></div>
         <div class="auth-or">${t("auth.or")}</div>
         <form id="authForm">
           <div class="glass-field">${mail}<input id="authEmail" type="email" placeholder="${t("auth.email_ph")}" autocomplete="email"></div>
@@ -2317,7 +2319,46 @@ function submitAuth(up){
 }
 
 /* ---------- who is signed in, and what they saved ---------- */
-let ME=null, SAVED=new Set();
+let ME=null, SAVED=new Set(), GOOGLE_ID=null;
+
+/* Google renders its own button; we only hand the token to the server. */
+async function mountGoogle(){
+  const slot=document.getElementById("googleBtn");
+  if(!slot) return;
+  if(GOOGLE_ID===null){
+    try{ GOOGLE_ID=(await (await fetch("/api/config")).json()).googleClientId||""; }
+    catch(e){ GOOGLE_ID=""; }
+  }
+  if(!GOOGLE_ID){ slot.style.display="none"; return; }   // not configured yet
+  slot.style.display="";
+  if(!window.google?.accounts?.id){
+    await new Promise(res=>{
+      const sc=document.createElement("script");
+      sc.src="https://accounts.google.com/gsi/client"; sc.async=true;
+      sc.onload=res; sc.onerror=res; document.head.appendChild(sc);
+    });
+  }
+  if(!window.google?.accounts?.id){ slot.style.display="none"; return; }
+  google.accounts.id.initialize({
+    client_id:GOOGLE_ID,
+    callback:async resp=>{
+      const err=document.getElementById("authErr");
+      try{
+        const r=await fetch("/api/auth/google",{method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({credential:resp.credential})});
+        const d=await r.json();
+        if(!r.ok){ if(err) err.textContent=t("auth.err.failed"); return; }
+        ME=d.user; SAVED=new Set((d.saved||[]).map(String));
+        paintAccount(); render(); closeOverlay("authOverlay");
+        toast(t("auth.done_title")); confettiBurst();
+      }catch(e){ if(err) err.textContent=t("auth.err.failed"); }
+    }
+  });
+  slot.innerHTML="";
+  google.accounts.id.renderButton(slot,{theme:"filled_black",size:"large",
+    width:320,text:"continue_with",shape:"pill"});
+}
 
 function loadMe(){
   return fetch("/api/me").then(r=>r.json()).then(d=>{
