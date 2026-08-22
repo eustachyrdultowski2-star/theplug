@@ -1,0 +1,13 @@
+{
+  // Cloudflare serves dist/ as static files and only runs the worker below
+  // when no file matches — which is exactly /api/*.
+  "name": "theplug",
+  "main": "worker.js",
+  "compatibility_date": "2026-08-01",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    // every client-side route (/feed, /brand/x, /legal) is really index.html
+    "not_found_handling": "single-page-application"
+  }
+}
