@@ -284,6 +284,9 @@ NOT_BRANDS = {
     # marketplaces people name in comments; none of them made the garment
     "dhgate", "alibaba", "taobao", "tmall", "wish", "banggood", "romwe",
     "yupoo", "weidian", "pandabuy", "cnfans", "kakobuy", "hoobuy", "mulebuy",
+    # resale and retail: good places to buy, never the label on the tag
+    "grailed", "vestiaire", "vestiairecollective", "poshmark", "mercari",
+    "stockx", "goat", "farfetch", "ssense", "asos", "zalando", "etsy",
     "thrift", "thrifted", "vintage", "custom", "handmade", "google", "tiktok",
     "loose", "fit", "baggy", "black", "white", "blue", "grey", "gray", "cream",
     "out", "of", "stock", "size", "sizing", "link", "bio", "dm", "comment",
