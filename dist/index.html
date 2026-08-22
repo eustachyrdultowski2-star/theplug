@@ -114,7 +114,8 @@ img{display:block;max-width:100%}
 /* ---------- top nav ---------- */
 header.nav{position:sticky;top:0;z-index:50;background:rgba(11,11,13,.82);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
 .nav-inner{display:flex;align-items:center;gap:18px;height:64px}
-.logo{font-family:Anton,sans-serif;font-size:26px;letter-spacing:1px;text-transform:uppercase}
+.logo{cursor:pointer;text-decoration:none;color:inherit;
+font-family:Anton,sans-serif;font-size:26px;letter-spacing:1px;text-transform:uppercase}
 .logo b{color:var(--accent)}
 .logo .the{font-family:Epilogue,sans-serif;font-weight:800;font-size:.42em;letter-spacing:2px;color:var(--muted);vertical-align:middle;margin-right:5px}
 .nav-search{flex:1;max-width:440px;display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:9px 16px;transition:border-color .2s}
@@ -958,7 +959,7 @@ main{padding:34px 0 90px}
 
 <header class="nav">
   <div class="wrap nav-inner">
-    <div class="logo"><span class="the">THE</span>PL<b>U</b>G</div>
+    <a class="logo" href="/" id="homeLogo" aria-label="The Plug"><span class="the">THE</span>PL<b>U</b>G</a>
     <label class="nav-search">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
       <input id="navSearch" type="text" data-i18n-ph="search.ph" />
@@ -1130,7 +1131,7 @@ main{padding:34px 0 90px}
   <span class="foot-glow"></span>
   <div class="wrap foot-grid">
     <div class="foot-brand foot-anim">
-      <div class="logo" style="font-size:22px"><span class="the">THE</span>PL<b>U</b>G</div>
+      <a class="logo" href="/" data-home style="font-size:22px"><span class="the">THE</span>PL<b>U</b>G</a>
       <p data-i18n="footer.tag">A database for clothes you spot in the wild. Prototype.</p>
       <p class="foot-copy">© <span id="footYear"></span> The Plug</p>
     </div>
@@ -3400,6 +3401,23 @@ function brandBySlug(sl){
           site:site||KNOWN_SITES[item.brand.toLowerCase()]||null,
           handle:item.src&&item.src.startsWith("@")?item.src:null};
 }
+
+/* The wordmark is the way back: it clears whatever the reader was filtering
+   by and puts them at the top, even when they are already on the landing page
+   and go() would decline to move. */
+function goHome(){
+  query=""; filterCat=null; filterStyle=null; savedOnly=false; feedOpen=false;
+  const nav=document.getElementById("navSearch"); if(nav) nav.value="";
+  if(location.pathname==="/"){ route(); }
+  else { history.pushState({},"","/"); route(); }
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+document.addEventListener("click",e=>{
+  const home=e.target.closest("#homeLogo,[data-home]");
+  if(!home) return;
+  e.preventDefault();
+  goHome();
+});
 
 function go(path,replace){
   if(location.pathname===path) return;
