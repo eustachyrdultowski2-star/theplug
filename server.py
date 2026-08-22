@@ -2,6 +2,7 @@
 """The Plug — dev server: serves the static site AND a /api/detect endpoint
 that runs the brand detector (Apify comments -> brand guess)."""
 import http.server, socketserver, json, os
+import re, html, urllib.request, urllib.parse
 import time
 import brand_detect
 import image_search
@@ -11,6 +12,47 @@ import auth
 
 PORT = int(os.environ.get("PORT", 4190))   # hosts assign the port
 DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+OG_RE = {
+    "title": re.compile(r'<meta[^>]+(?:property|name)=["\']og:title["\'][^>]+content=["\']([^"\']+)', re.I),
+    "photo": re.compile(r'<meta[^>]+(?:property|name)=["\']og:image["\'][^>]+content=["\']([^"\']+)', re.I),
+    "brand": re.compile(r'<meta[^>]+(?:property|name)=["\']og:site_name["\'][^>]+content=["\']([^"\']+)', re.I),
+    "price": re.compile(r'<meta[^>]+(?:property|name)=["\'](?:og:price:amount|product:price:amount)["\'][^>]+content=["\']([^"\']+)', re.I),
+}
+TITLE_RE = re.compile(r"<title[^>]*>([^<]{2,120})</title>", re.I)
+
+
+def read_link(url: str):
+    """Pull the shop's own title, photo and price out of a product page.
+
+    Shops publish these tags for social previews, so this is the same data a
+    link preview would show — no scraping of anything a browser would not
+    already fetch, and a single request with a short timeout.
+    """
+    req = urllib.request.Request(url, headers={
+        "User-Agent": "Mozilla/5.0 (compatible; ThePlug/1.0; +link preview)",
+        "Accept": "text/html,application/xhtml+xml",
+    })
+    with urllib.request.urlopen(req, timeout=12) as r:
+        ctype = (r.headers.get("Content-Type") or "").lower()
+        if "html" not in ctype:
+            return {}
+        raw = r.read(400_000).decode("utf-8", "replace")   # the head is all we need
+
+    out = {}
+    for field, rx in OG_RE.items():
+        m = rx.search(raw)
+        if m:
+            out[field] = html.unescape(m.group(1)).strip()
+    if not out.get("title"):
+        m = TITLE_RE.search(raw)
+        if m:
+            out["title"] = html.unescape(m.group(1)).strip()
+    if not out.get("brand"):
+        out["brand"] = urllib.parse.urlparse(url).netloc.replace("www.", "")
+    out["link"] = url
+    return out
 
 
 def admin_stats():
@@ -102,6 +144,20 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             if name == "/api/alerts":
                 return self._json(200, {"alerts": store.load("alerts", [])[::-1][:40],
                                         "watches": store.load("watches", [])})
+            if name.startswith("/api/u/"):
+                # a public wardrobe; private ones are indistinguishable from
+                # accounts that do not exist, which is the point
+                view = auth.profile_view(urllib.parse.unquote(name[7:]))
+                if not view:
+                    return self._json(404, {"error": "not_found"})
+                return self._json(200, view)
+
+            if name == "/api/closet":
+                me = self._me()
+                if not me:
+                    return self._json(401, {"error": "sign_in_required"})
+                return self._json(200, {"closet": auth.closet(me["id"])})
+
             if name == "/api/leaderboard":
                 rows = sorted(store.load("leaderboard", []), key=lambda r: -r["points"])
                 return self._json(200, {"board": rows[:20]})
@@ -119,7 +175,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                              "/api/subscribe", "/api/score",
                              "/api/auth/register", "/api/auth/login",
                              "/api/auth/logout", "/api/save", "/api/auth/google",
-                             "/api/auth/delete", "/api/admin/delete"):
+                             "/api/auth/delete", "/api/admin/delete",
+                             "/api/closet/add", "/api/closet/remove",
+                             "/api/profile", "/api/link"):
             return self._json(404, {"error": "not found"})
         try:
             n = int(self.headers.get("Content-Length", 0))
@@ -165,6 +223,44 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     return self._json(400, {"error": "no_email"})
                 gone = auth.delete_by_email(email)
                 return self._json(200, {"deleted": gone})
+
+            if self.path == "/api/profile":
+                me = self._me()
+                if not me:
+                    return self._json(401, {"error": "sign_in_required"})
+                user, err = auth.set_profile(
+                    me["id"],
+                    shared=body.get("shared") if "shared" in body else None,
+                    handle=body.get("handle") if "handle" in body else None,
+                    name=body.get("name") if "name" in body else None)
+                if err:
+                    return self._json(400, {"error": err})
+                return self._json(200, {"user": user})
+
+            if self.path == "/api/closet/add":
+                me = self._me()
+                if not me:
+                    return self._json(401, {"error": "sign_in_required"})
+                row, err = auth.closet_add(me["id"], body.get("item") or {})
+                if err:
+                    return self._json(400, {"error": err})
+                return self._json(200, {"item": row, "closet": auth.closet(me["id"])})
+
+            if self.path == "/api/closet/remove":
+                me = self._me()
+                if not me:
+                    return self._json(401, {"error": "sign_in_required"})
+                return self._json(200, {"closet": auth.closet_remove(
+                    me["id"], (body.get("key") or "").strip())})
+
+            if self.path == "/api/link":       # read a product page for the shelf
+                url = (body.get("url") or "").strip()
+                if not url.startswith(("http://", "https://")):
+                    return self._json(400, {"error": "bad_url"})
+                try:
+                    return self._json(200, {"item": read_link(url)})
+                except Exception:
+                    return self._json(200, {"item": {"link": url}})
 
             if self.path == "/api/auth/logout":
                 auth.close_session(self._token())

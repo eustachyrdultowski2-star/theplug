@@ -54,8 +54,10 @@ def register(email: str, password: str):
         "name": email.split("@")[0][:24],
         "password": hash_password(password),
         "plus": False,
+        "shared": False,          # a wardrobe is private until its owner says otherwise
         "created": int(time.time()),
     }
+    user["handle"] = free_handle(email.split("@")[0])
     store.update("users", [], lambda us: us + [user])
     return public(user), None
 
@@ -71,7 +73,9 @@ def login(email: str, password: str):
 
 def public(user):
     return {"id": user["id"], "email": user["email"],
-            "name": user.get("name"), "plus": bool(user.get("plus"))}
+            "name": user.get("name"), "plus": bool(user.get("plus")),
+            "handle": user.get("handle") or handle_for(user),
+            "shared": bool(user.get("shared"))}
 
 
 # ---------- sessions ----------
@@ -97,6 +101,128 @@ def session_user(token: str):
 
 def close_session(token: str):
     store.update("sessions", [], lambda ss: [s for s in ss if s["token"] != token])
+
+
+# ---------- profiles and the wardrobe ----------
+HANDLE_RE = re.compile(r"[^a-z0-9_]+")
+
+
+def clean_handle(raw: str) -> str:
+    h = HANDLE_RE.sub("", (raw or "").strip().lower())[:20]
+    return h or "plug"
+
+
+def free_handle(raw: str) -> str:
+    """A handle nobody else holds. Two people called jan get jan and jan2."""
+    base = clean_handle(raw)
+    taken = {u.get("handle") for u in _users()}
+    if base not in taken:
+        return base
+    n = 2
+    while f"{base}{n}" in taken:
+        n += 1
+    return f"{base}{n}"
+
+
+def handle_for(user):
+    return clean_handle(user.get("name") or user.get("email", "").split("@")[0])
+
+
+def by_handle(handle: str):
+    h = clean_handle(handle)
+    return next((u for u in _users() if (u.get("handle") or handle_for(u)) == h), None)
+
+
+def set_profile(user_id: str, shared=None, handle=None, name=None):
+    """Rename, re-handle, or flip a wardrobe between private and public."""
+    err = [None]
+
+    def upd(users):
+        for u in users:
+            if u["id"] != user_id:
+                continue
+            if handle is not None:
+                want = clean_handle(handle)
+                clash = next((o for o in users
+                              if o["id"] != user_id and o.get("handle") == want), None)
+                if clash:
+                    err[0] = "handle_taken"
+                    return users
+                u["handle"] = want
+            if name is not None:
+                u["name"] = name.strip()[:24] or u["name"]
+            if shared is not None:
+                u["shared"] = bool(shared)
+            return users
+        err[0] = "no_user"
+        return users
+
+    users = store.update("users", [], upd)
+    if err[0]:
+        return None, err[0]
+    user = next((u for u in users if u["id"] == user_id), None)
+    return public(user), None
+
+
+def closet(user_id: str):
+    return store.load("closet", {}).get(user_id, [])
+
+
+def closet_add(user_id: str, item: dict):
+    """Anything can land on the shelf: a catalog piece, a link, a Lens match.
+
+    Whatever the source, only these fields are kept — the rest of whatever the
+    client sent is dropped rather than stored unread.
+    """
+    row = {
+        "key":   secrets.token_hex(6),
+        "title": (item.get("title") or "").strip()[:80],
+        "brand": (item.get("brand") or "").strip()[:60],
+        "photo": (item.get("photo") or "").strip()[:600],
+        "link":  (item.get("link") or "").strip()[:600],
+        "price": (item.get("price") or "").strip()[:24],
+        "note":  (item.get("note") or "").strip()[:140],
+        "at":    int(time.time()),
+    }
+    if not row["title"] and not row["photo"]:
+        return None, "empty"
+    for field in ("photo", "link"):
+        if row[field] and not row[field].startswith(("http://", "https://")):
+            row[field] = ""
+
+    def upd(all_closets):
+        shelf = all_closets.get(user_id, [])
+        if len(shelf) >= 300:
+            shelf = shelf[-299:]          # a shelf, not a warehouse
+        all_closets[user_id] = shelf + [row]
+        return all_closets
+
+    store.update("closet", {}, upd)
+    return row, None
+
+
+def closet_remove(user_id: str, key: str):
+    def upd(all_closets):
+        all_closets[user_id] = [r for r in all_closets.get(user_id, [])
+                                if r.get("key") != key]
+        return all_closets
+    store.update("closet", {}, upd)
+    return closet(user_id)
+
+
+def profile_view(handle: str):
+    """What a visitor is allowed to see. None when it is private or missing."""
+    user = by_handle(handle)
+    if not user or not user.get("shared"):
+        return None
+    return {
+        "name":   user.get("name"),
+        "handle": user.get("handle") or handle_for(user),
+        "since":  user.get("created"),
+        "score":  score_row(user["id"]),
+        "closet": closet(user["id"]),
+        "wishlist": saved_ids(user["id"]),
+    }
 
 
 # ---------- contribution score ----------
@@ -151,6 +277,12 @@ def delete_user(user_id: str) -> bool:
 
     store.update("saved", {}, drop_saved)
     store.update("leaderboard", [], lambda rs: [r for r in rs if r.get("id") != user_id])
+
+    def drop_closet(all_closets):
+        all_closets.pop(user_id, None)
+        return all_closets
+
+    store.update("closet", {}, drop_closet)
     return True
 
 

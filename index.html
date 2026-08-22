@@ -378,6 +378,45 @@ main{padding:34px 0 90px}
 .feed-more{display:flex;flex-direction:column;align-items:center;gap:8px;padding:26px 0 4px}
 .feed-more:empty{display:none}
 .empty-note{grid-column:1/-1;text-align:center;padding:46px 20px;color:var(--muted)}
+.cl-privacy{margin-top:26px;padding:16px;border:1px solid var(--border);border-radius:16px;
+  background:var(--surface)}
+.cl-priv-row{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:999px;overflow:hidden}
+.seg button{padding:7px 16px;font:inherit;font-size:13px;background:none;border:0;cursor:pointer;
+  color:var(--muted);transition:background .2s,color .2s}
+.seg button.on{background:var(--accent);color:var(--on-accent)}
+.cl-share{margin-top:16px;padding-top:16px;border-top:1px solid var(--border)}
+.cl-handle{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
+.cl-handle span{color:var(--faint);font-size:13px}
+.cl-handle input{flex:1;min-width:120px;padding:9px 12px;border-radius:10px;
+  border:1px solid var(--border);background:var(--bg);color:var(--text);font:inherit;font-size:14px}
+.cl-url{display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap}
+.cl-url code{font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.cl-add{margin-top:22px}
+.cl-add-row{display:flex;gap:10px;flex-wrap:wrap}
+.cl-add-row input{flex:1;min-width:200px;padding:12px 14px;border-radius:12px;
+  border:1px solid var(--border);background:var(--surface);color:var(--text);font:inherit;font-size:14px}
+.cl-draft{display:flex;gap:14px;margin-top:14px;padding:14px;border:1px solid var(--border);
+  border-radius:14px;background:var(--surface);flex-wrap:wrap}
+.cl-draft img{width:88px;height:110px;object-fit:cover;border-radius:10px;flex:none}
+.cl-draft-fields{flex:1;min-width:200px;display:flex;flex-direction:column;gap:9px}
+.cl-draft-fields input{padding:10px 12px;border-radius:10px;border:1px solid var(--border);
+  background:var(--bg);color:var(--text);font:inherit;font-size:14px}
+.cl-grid{display:grid;gap:14px;margin-top:14px;
+  grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.cl-card{position:relative;border:1px solid var(--border);border-radius:14px;overflow:hidden;
+  background:var(--surface)}
+.cl-card a{text-decoration:none;color:inherit;display:block}
+.cl-card img{width:100%;aspect-ratio:3/4;object-fit:cover;display:block}
+.cl-noimg{width:100%;aspect-ratio:3/4;display:grid;place-items:center;font-size:24px;
+  font-weight:700;color:var(--faint);background:var(--bg)}
+.cl-body{padding:10px 12px 12px;display:flex;flex-direction:column;gap:3px}
+.cl-body b{font-size:13px;line-height:1.35}
+.cl-body span{font-size:11.5px;color:var(--faint)}
+.cl-x{position:absolute;top:8px;right:8px;width:26px;height:26px;border-radius:50%;
+  border:0;cursor:pointer;background:rgba(0,0,0,.55);color:#fff;font-size:16px;line-height:1;
+  opacity:0;transition:opacity .2s}
+.cl-card:hover .cl-x{opacity:1}
 .rank-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;
   font-size:12px;font-weight:600;letter-spacing:.01em;color:var(--rank);
   background:color-mix(in srgb,var(--rank) 14%,transparent);
@@ -1064,6 +1103,16 @@ main{padding:34px 0 90px}
   </div>
 </section>
 
+<!-- your wardrobe: what you own, what you want, and who gets to see it -->
+<section class="legal-wrap" id="closetPage" style="display:none">
+  <div class="wrap" id="closetBody"></div>
+</section>
+
+<!-- somebody else's wardrobe, when they chose to share it -->
+<section class="legal-wrap" id="profilePage" style="display:none">
+  <div class="wrap" id="profileBody"></div>
+</section>
+
 <!-- terms, privacy, cookies and house rules — one page, four anchors -->
 <section class="legal-wrap" id="legalPage" style="display:none">
   <div class="wrap">
@@ -1204,6 +1253,37 @@ const I18N = {
     "stat.pending":"finds waiting to be ID'd",
     "feed.title":"The feed",
     "empty.none":"Nothing matches that. Try another filter.",
+    "closet.title":"Your wardrobe",
+    "closet.sub":"What you own and what you are after. Private until you say otherwise.",
+    "closet.owned":"In the wardrobe",
+    "closet.wish":"Wishlist",
+    "closet.add":"Add a piece",
+    "closet.by_link":"From a link",
+    "closet.by_link_ph":"Paste a product link\u2026",
+    "closet.by_photo":"From a photo",
+    "closet.reading":"Reading the page\u2026",
+    "closet.manual":"Nothing came back \u2014 fill it in yourself",
+    "closet.name_ph":"What is it?",
+    "closet.brand_ph":"Brand",
+    "closet.save":"Put it on the shelf",
+    "closet.empty":"Nothing here yet. Add something from a link, a photo, or the feed.",
+    "closet.wish_empty":"Nothing on the wishlist. Tap the heart on any piece.",
+    "closet.remove":"Remove",
+    "closet.privacy":"Who can see this",
+    "closet.private":"Only me",
+    "closet.public":"Anyone with the link",
+    "closet.your_link":"Your page",
+    "closet.copy":"Copy link",
+    "closet.copied":"Link copied",
+    "closet.handle":"Your name in the link",
+    "closet.handle_taken":"Somebody already has that one",
+    "closet.saved_ok":"Saved",
+    "closet.signin":"Sign in to keep a wardrobe",
+    "closet.pieces":"{n} pieces",
+    "profile.private":"This wardrobe is private, or there is nobody by that name.",
+    "profile.since":"Here since {d}",
+    "profile.back":"Back to The Plug",
+    "dock.closet":"Wardrobe",
     "rank.title":"Ranks",
     "rank.sub":"Every confirmed ID moves you up. Ranks are earned, never bought.",
     "rank.you":"Your rank",
@@ -1296,7 +1376,7 @@ const I18N = {
     "id.votes":"{n} guessed {b}","id.agree":"Agree","id.confirm_toast":"{b} confirmed ✦ +1 look-up",
     "id.rule":"Rewards unlock when two people name the same brand.",
     "submit.title":"Submit a find","submit.desc":"Drop a reel link or a screenshot. The community helps figure out what it is.","submit.drop":"Drag a screenshot here, or click to upload","submit.link":"Reel / TikTok link","submit.link.ph":"https://instagram.com/reel/…","submit.note":"What are you after? (optional)","submit.note.ph":"“The oversized washed denim jacket at 0:12”","submit.send":"Post to the community","submit.done.title":"You're in the queue","submit.done.desc":"Your find is live. We'll ping you the moment someone tags the brand.","submit.done.btn":"Nice",
-    "d.link":"Link","d.search":"Search","d.photo":"Photo","d.feed":"Feed","d.vibes":"Vibes","d.id":"Help ID","d.saved":"Saved","d.plus":"Plug+","d.account":"Account",
+    "d.link":"Link","d.search":"Search","d.photo":"Photo","d.feed":"Feed","d.vibes":"Vibes","d.id":"Help ID","d.saved":"Saved","d.closet":"Wardrobe","d.plus":"Plug+","d.account":"Account",
     "dock.link":"Spot from link","dock.search":"Search by name","dock.photo":"Search by photo","dock.feed":"Feed","dock.vibes":"Vibes","dock.id":"Help ID","dock.saved":"Saved","dock.plus":"Plug+","dock.account":"Account",
     "photo.title":"Search by photo","photo.desc":"Drop a screenshot of the fit — we'll match it against the catalog.","photo.drop":"Drop an image here, or click to upload","photo.soon":"Visual search is coming with Plug+ — for now, paste a link or search by name.",
     "flux.fetching":"opening the clip","flux.reading":"reading comments","flux.matching":"matching brands","flux.uploading":"uploading","flux.scanning":"scanning the fit","flux.done":"all done",
@@ -1320,6 +1400,37 @@ const I18N = {
     "stat.pending":"znalezisk czeka na rozpoznanie",
     "feed.title":"Feed",
     "empty.none":"Nic nie pasuje. Spróbuj innego filtra.",
+    "closet.title":"Twoja szafa",
+    "closet.sub":"Co masz i na co polujesz. Prywatne, dop\u00f3ki nie zdecydujesz inaczej.",
+    "closet.owned":"W szafie",
+    "closet.wish":"Lista \u017cycze\u0144",
+    "closet.add":"Dodaj rzecz",
+    "closet.by_link":"Z linku",
+    "closet.by_link_ph":"Wklej link do produktu\u2026",
+    "closet.by_photo":"Ze zdj\u0119cia",
+    "closet.reading":"Czytam stron\u0119\u2026",
+    "closet.manual":"Nic nie wr\u00f3ci\u0142o \u2014 uzupe\u0142nij sam",
+    "closet.name_ph":"Co to jest?",
+    "closet.brand_ph":"Marka",
+    "closet.save":"Od\u0142\u00f3\u017c na p\u00f3\u0142k\u0119",
+    "closet.empty":"Pusto. Dodaj co\u015b z linku, ze zdj\u0119cia albo z feedu.",
+    "closet.wish_empty":"Lista \u017cycze\u0144 pusta. Kliknij serce przy dowolnej rzeczy.",
+    "closet.remove":"Usu\u0144",
+    "closet.privacy":"Kto to widzi",
+    "closet.private":"Tylko ja",
+    "closet.public":"Ka\u017cdy, kto ma link",
+    "closet.your_link":"Twoja strona",
+    "closet.copy":"Kopiuj link",
+    "closet.copied":"Link skopiowany",
+    "closet.handle":"Twoja nazwa w linku",
+    "closet.handle_taken":"Kto\u015b ju\u017c t\u0119 nazw\u0119 ma",
+    "closet.saved_ok":"Zapisane",
+    "closet.signin":"Zaloguj si\u0119, \u017ceby mie\u0107 szaf\u0119",
+    "closet.pieces":"{n} rzeczy",
+    "profile.private":"Ta szafa jest prywatna albo nie ma takiej osoby.",
+    "profile.since":"Tu od {d}",
+    "profile.back":"Wr\u00f3\u0107 do The Plug",
+    "dock.closet":"Szafa",
     "rank.title":"Rangi",
     "rank.sub":"Każda potwierdzona identyfikacja pcha Cię w górę. Rang się nie kupuje.",
     "rank.you":"Twoja ranga",
@@ -1412,7 +1523,7 @@ const I18N = {
     "id.votes":"{n} osoba typuje {b}","id.agree":"Zgadzam się","id.confirm_toast":"{b} potwierdzone ✦ +1 wyszukiwanie",
     "id.rule":"Nagroda odblokowuje się, gdy dwie osoby podadzą tę samą markę.",
     "submit.title":"Wrzuć znalezisko","submit.desc":"Wklej link do rolki albo screena. Społeczność pomoże ustalić, co to.","submit.drop":"Przeciągnij screena tutaj albo kliknij, by dodać","submit.link":"Link do rolki / TikToka","submit.link.ph":"https://instagram.com/reel/…","submit.note":"Czego szukasz? (opcjonalnie)","submit.note.ph":"„Ta oversize'owa jeansowa kurtka w 0:12”","submit.send":"Wrzuć do społeczności","submit.done.title":"Jesteś w kolejce","submit.done.desc":"Twoje znalezisko jest na tablicy. Damy znać, gdy tylko ktoś otaguje markę.","submit.done.btn":"Spoko",
-    "d.link":"Link","d.search":"Szukaj","d.photo":"Zdjęcie","d.feed":"Feed","d.vibes":"Klimaty","d.id":"Rozpoznaj","d.saved":"Zapisane","d.plus":"Plug+","d.account":"Konto",
+    "d.link":"Link","d.search":"Szukaj","d.photo":"Zdjęcie","d.feed":"Feed","d.vibes":"Klimaty","d.id":"Rozpoznaj","d.saved":"Zapisane","d.closet":"Szafa","d.plus":"Plug+","d.account":"Konto",
     "dock.link":"Z linku","dock.search":"Szukaj po nazwie","dock.photo":"Szukaj po zdjęciu","dock.feed":"Feed","dock.vibes":"Klimaty","dock.id":"Rozpoznaj","dock.saved":"Zapisane","dock.plus":"Plug+","dock.account":"Konto",
     "photo.title":"Szukaj po zdjęciu","photo.desc":"Wrzuć screena ciucha — dopasujemy go do katalogu.","photo.drop":"Przeciągnij zdjęcie albo kliknij, by dodać","photo.soon":"Wyszukiwanie wizualne będzie w Plug+ — na razie wklej link albo szukaj po nazwie.",
     "flux.fetching":"otwieram film","flux.reading":"czytam komentarze","flux.matching":"dopasowuję marki","flux.uploading":"wysyłam zdjęcie","flux.scanning":"skanuję ciuch","flux.done":"gotowe",
@@ -1733,8 +1844,8 @@ function renderFooter(){
   const box=document.getElementById("footCols"); if(!box) return;
   const y=document.getElementById("footYear"); if(y) y.textContent=new Date().getFullYear();
   const cols=[
-    {h:"foot.product",links:[["foot.search","/#grid"],["foot.vibes","/#vibeRow"],
-                              ["foot.spot","/#spot"],["foot.plus","/#plus"]]},
+    {h:"foot.product",links:[["foot.search","/feed"],["foot.vibes","/#vibeRow"],
+                              ["dock.closet","/closet"],["dock.id","/help-id"]]},
     {h:"foot.company", links:[["foot.about","/about"],["foot.brands","/brands"],
                               ["foot.contact","/contact"],["foot.faq","/faq"]]},
     {h:"foot.legal",   links:[["foot.terms","/legal#terms"],["foot.privacy","/legal#privacy"],
@@ -2488,6 +2599,223 @@ function loadMe(){
   }).catch(()=>{});
 }
 
+
+/* ---------- the wardrobe ---------------------------------------------------
+   Two shelves: what somebody owns, and what they are still after. The second
+   one is the pieces they already hearted, so nobody has to keep two lists.
+   Everything is private until its owner flips the switch. */
+let CLOSET = [];
+
+function closetCardHTML(row, mine){
+  const img = row.photo
+    ? `<img src="${esc(row.photo)}" alt="" loading="lazy" onerror="this.remove()">`
+    : `<div class="cl-noimg">${esc((row.brand||row.title||"?").slice(0,2).toUpperCase())}</div>`;
+  const body = `<div class="cl-body">
+      <b>${esc(row.title||"—")}</b>
+      <span>${esc(row.brand||"")}${row.price?" · "+esc(row.price):""}</span>
+    </div>`;
+  return `<div class="cl-card">
+    ${row.link?`<a href="${esc(row.link)}" target="_blank" rel="noopener noreferrer">${img}${body}</a>`:img+body}
+    ${mine?`<button class="cl-x" data-drop="${esc(row.key)}" title="${t("closet.remove")}">×</button>`:""}
+  </div>`;
+}
+
+function wishCardHTML(id){
+  const it = everything().find(i=>String(i.id)===String(id));
+  if(!it) return "";
+  return closetCardHTML({title:it.name, brand:it.brand, photo:it.photo,
+                         link:it.link, price:it.price||""}, false);
+}
+
+async function renderCloset(){
+  showOnly(["closetPage"]); window.scrollTo(0,0);
+  const box = document.getElementById("closetBody");
+
+  if(!ME){
+    box.innerHTML = `<div class="legal-head"><h1>${t("closet.title")}</h1>
+      <p class="legal-updated">${t("closet.sub")}</p></div>
+      <div class="empty-note"><p>${t("closet.signin")}</p>
+      <button class="btn btn-ghost" id="closetSignIn">${t("auth.nav")}</button></div>`;
+    document.getElementById("closetSignIn").onclick=()=>{
+      renderAuth("signin"); openOverlay("authOverlay"); };
+    return;
+  }
+
+  try{ CLOSET = (await (await fetch("/api/closet")).json()).closet || []; }catch(e){ CLOSET = []; }
+  const wish = [...SAVED];
+  const shareUrl = location.origin + "/u/" + (ME.handle||"");
+
+  box.innerHTML = `
+    <div class="legal-head">
+      <h1>${t("closet.title")}</h1>
+      <p class="legal-updated">${t("closet.sub")}</p>
+    </div>
+
+    <div class="cl-privacy">
+      <div class="cl-priv-row">
+        <span class="rank-label">${t("closet.privacy")}</span>
+        <div class="seg">
+          <button data-share="0" class="${ME.shared?"":"on"}">${t("closet.private")}</button>
+          <button data-share="1" class="${ME.shared?"on":""}">${t("closet.public")}</button>
+        </div>
+      </div>
+      <div class="cl-share" ${ME.shared?"":"hidden"}>
+        <label class="rank-label">${t("closet.handle")}</label>
+        <div class="cl-handle">
+          <span>/u/</span><input id="clHandle" value="${esc(ME.handle||"")}" maxlength="20">
+          <button class="btn btn-ghost" id="clHandleSave">${t("closet.saved_ok")}</button>
+        </div>
+        <div class="cl-url"><code>${esc(shareUrl)}</code>
+          <button class="btn btn-ghost" id="clCopy">${t("closet.copy")}</button></div>
+      </div>
+    </div>
+
+    <div class="cl-add">
+      <div class="cl-add-row">
+        <input id="clLink" placeholder="${t("closet.by_link_ph")}">
+        <button class="btn btn-primary" id="clFromLink">${t("closet.by_link")}</button>
+        <button class="btn btn-ghost" id="clFromPhoto">${t("closet.by_photo")}</button>
+      </div>
+      <div id="clDraft"></div>
+    </div>
+
+    <div class="section-head" style="margin-top:34px">
+      <h2>${t("closet.owned")}</h2>
+      <span class="a-dim">${t("closet.pieces").replace("{n}", CLOSET.length)}</span>
+    </div>
+    <div class="cl-grid">${CLOSET.slice().reverse().map(r=>closetCardHTML(r,true)).join("")
+      || `<div class="empty-note"><p>${t("closet.empty")}</p></div>`}</div>
+
+    <div class="section-head" style="margin-top:30px">
+      <h2>${t("closet.wish")}</h2>
+      <span class="a-dim">${t("closet.pieces").replace("{n}", wish.length)}</span>
+    </div>
+    <div class="cl-grid">${wish.map(wishCardHTML).join("")
+      || `<div class="empty-note"><p>${t("closet.wish_empty")}</p></div>`}</div>`;
+
+  wireCloset(shareUrl);
+}
+
+function wireCloset(shareUrl){
+  const box = document.getElementById("closetBody");
+
+  box.querySelectorAll("[data-share]").forEach(b=>b.onclick=async ()=>{
+    const want = b.dataset.share === "1";
+    const r = await fetch("/api/profile",{method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({shared:want})});
+    const d = await r.json();
+    if(d.user){ ME = d.user; renderCloset(); }
+  });
+
+  const handleBtn = document.getElementById("clHandleSave");
+  if(handleBtn) handleBtn.onclick = async ()=>{
+    const v = document.getElementById("clHandle").value;
+    const r = await fetch("/api/profile",{method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({handle:v})});
+    const d = await r.json();
+    if(d.error === "handle_taken"){ toast(t("closet.handle_taken")); return; }
+    if(d.user){ ME = d.user; toast(t("closet.saved_ok")); renderCloset(); }
+  };
+
+  const copy = document.getElementById("clCopy");
+  if(copy) copy.onclick = ()=>{
+    navigator.clipboard.writeText(shareUrl).then(()=>toast(t("closet.copied")),()=>{});
+  };
+
+  box.querySelectorAll("[data-drop]").forEach(b=>b.onclick=async ()=>{
+    b.disabled = true;
+    const r = await fetch("/api/closet/remove",{method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({key:b.dataset.drop})});
+    CLOSET = (await r.json()).closet || [];
+    renderCloset();
+  });
+
+  document.getElementById("clFromLink").onclick = async ()=>{
+    const url = document.getElementById("clLink").value.trim();
+    if(!url) return;
+    const draft = document.getElementById("clDraft");
+    draft.innerHTML = `<p class="spot-hint">${t("closet.reading")}</p>`;
+    let item = {link:url};
+    try{
+      const r = await fetch("/api/link",{method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({url})});
+      item = (await r.json()).item || item;
+    }catch(e){}
+    showDraft(item);
+  };
+
+  document.getElementById("clFromPhoto").onclick = ()=>{
+    renderPhotoSearch(); openOverlay("submitOverlay");
+  };
+}
+
+/* Whatever the link gave us is shown before it is stored, because shops get
+   these tags wrong often enough that a silent save would fill the shelf with
+   "Home page" and a banner image. */
+function showDraft(item){
+  const draft = document.getElementById("clDraft");
+  const missing = !item.title;
+  draft.innerHTML = `
+    <div class="cl-draft">
+      ${item.photo?`<img src="${esc(item.photo)}" alt="" onerror="this.remove()">`:""}
+      <div class="cl-draft-fields">
+        ${missing?`<p class="spot-hint">${t("closet.manual")}</p>`:""}
+        <input id="dfTitle" placeholder="${t("closet.name_ph")}" value="${esc(item.title||"")}">
+        <input id="dfBrand" placeholder="${t("closet.brand_ph")}" value="${esc(item.brand||"")}">
+        <button class="btn btn-primary" id="dfSave">${t("closet.save")}</button>
+      </div>
+    </div>`;
+  document.getElementById("dfSave").onclick = async ()=>{
+    const row = {
+      title: document.getElementById("dfTitle").value,
+      brand: document.getElementById("dfBrand").value,
+      photo: item.photo || "", link: item.link || "", price: item.price || "",
+    };
+    const r = await fetch("/api/closet/add",{method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({item:row})});
+    const d = await r.json();
+    if(d.closet){ CLOSET = d.closet; document.getElementById("clLink").value=""; renderCloset(); }
+  };
+}
+
+/* somebody else's shelf */
+async function renderProfile(handle){
+  showOnly(["profilePage"]); window.scrollTo(0,0);
+  const box = document.getElementById("profileBody");
+  box.innerHTML = `<p class="spot-hint">…</p>`;
+  let d = null;
+  try{
+    const r = await fetch("/api/u/" + encodeURIComponent(handle));
+    if(r.ok) d = await r.json();
+  }catch(e){}
+
+  if(!d){
+    box.innerHTML = `<div class="empty-note"><p>${t("profile.private")}</p>
+      <a href="/" data-route class="btn btn-ghost">${t("profile.back")}</a></div>`;
+    return;
+  }
+  const since = d.since ? new Date(d.since*1000).toLocaleDateString(lang==="pl"?"pl-PL":"en-GB",
+                          {month:"long", year:"numeric"}) : "";
+  box.innerHTML = `
+    <div class="legal-head">
+      <h1>${esc(d.name||d.handle)}</h1>
+      <p class="legal-updated">@${esc(d.handle)} · ${t("profile.since").replace("{d}",since)}</p>
+      <div style="margin-top:12px">${rankBadge((d.score||{}).points||0)}</div>
+    </div>
+    <div class="section-head" style="margin-top:30px"><h2>${t("closet.owned")}</h2></div>
+    <div class="cl-grid">${(d.closet||[]).slice().reverse().map(r=>closetCardHTML(r,false)).join("")
+      || `<div class="empty-note"><p>${t("closet.empty")}</p></div>`}</div>
+    <div class="section-head" style="margin-top:30px"><h2>${t("closet.wish")}</h2></div>
+    <div class="cl-grid">${(d.wishlist||[]).map(wishCardHTML).join("")
+      || `<div class="empty-note"><p>${t("closet.wish_empty")}</p></div>`}</div>
+    <div style="margin-top:34px"><a href="/" data-route class="btn btn-ghost">${t("profile.back")}</a></div>`;
+}
+
 /* ---------- ranks ----------------------------------------------------------
    Six steps, deliberately steep at the top: the first one should arrive on a
    good evening, the last one should take a season. Points come only from IDs
@@ -2691,6 +3019,7 @@ function observeReveal(){
 
 /* ============ macOS dock (cosine magnification, ported) ============ */
 const ICO={
+  closet:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7a2 2 0 1 1 2-2c0 1-1 1.4-2 2Z"/><path d="M12 7v2"/><path d="M12 9 3.6 15.2a1 1 0 0 0 .6 1.8h15.6a1 1 0 0 0 .6-1.8L12 9Z"/></svg>`,
   link:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7L12 19"/></svg>',
   search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>',
   photo:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.8"/><path d="m21 15-5-5L5 21"/></svg>',
@@ -2713,8 +3042,9 @@ const DOCK_APPS=[
       document.getElementById("feedTitle").textContent=t("feed.title");
       document.getElementById("grid").scrollIntoView({behavior:"smooth",block:"start"});}},
   {id:"vibes",  i18n:"dock.vibes",  act:()=>{document.getElementById("vibeRow").scrollIntoView({behavior:"smooth",block:"center"});}},
-  {id:"id",     i18n:"dock.id",     accent:3, act:()=>{document.getElementById("community").scrollIntoView({behavior:"smooth",block:"start"});}},
+  {id:"id",     i18n:"dock.id",     accent:3, act:()=>go("/help-id")},
   {id:"saved",  i18n:"dock.saved",  act:()=>showSaved()},
+  {id:"closet", i18n:"dock.closet", act:()=>go("/closet")},
   {id:"plus",   i18n:"dock.plus",   accent:2, act:()=>{renderPlus();openOverlay("plusOverlay");}},
   // signed in already? show the account, the way the header button does
   {id:"account",i18n:"dock.account",act:()=>{
@@ -3086,7 +3416,8 @@ window.addEventListener("popstate",route);
 
 function showOnly(ids){
   const all=["heroSection","tiltSection","vibesSection","featuredSection","feedSection",
-             "community","faq","brandPage","itemPage","adminPage","legalPage"];
+             "community","faq","brandPage","itemPage","adminPage","legalPage",
+             "closetPage","profilePage"];
   all.forEach(id=>{const el=document.getElementById(id); if(el) el.style.display=ids.includes(id)?"":"none";});
 }
 
@@ -3405,11 +3736,16 @@ function route(){
     window.scrollTo(0,0); return;
   }
   if(p==="/faq"){ showOnly(["faq"]); window.scrollTo(0,0); return; }
+  if(p==="/help-id"){ showOnly(["community"]); renderBoard(); window.scrollTo(0,0); return; }
+  if(p==="/closet"){ renderCloset(); return; }
+  if(p.startsWith("/u/")){ renderProfile(decodeURIComponent(p.slice(3))); return; }
   if(p==="/admin"){ renderAdmin(); return; }
   if(p==="/legal"){ renderLegal(location.hash.slice(1)); return; }
   if(p==="/about"||p==="/brands"||p==="/contact"){ renderDoc(p.slice(1)); return; }
   // landing
-  showOnly(["heroSection","tiltSection","vibesSection","featuredSection","feedSection","community","faq"]);
+  // the landing is an introduction, not the whole site: helping with IDs,
+  // the questions and the wardrobe each have their own address now
+  showOnly(["heroSection","tiltSection","vibesSection","featuredSection","feedSection"]);
   feedOpen=false; feedShown=PAGE; render();
   document.getElementById("feedTitle").textContent=t("feed.title");
   // footer links like /#vibeRow land here: the sections were just un-hidden,
