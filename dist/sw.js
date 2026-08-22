@@ -2,6 +2,8 @@
    Shell is cached so the app opens instantly and survives a dead connection;
    API calls and shop images always go to the network. */
 const CACHE = "plug-v1";
+const SHARE = "plug-share";        // one slot, for the image being handed over
+const SHARE_KEY = "/__shared-image";
 const SHELL = ["/", "/assets/js/catalog.js", "/manifest.webmanifest",
                "/assets/icons/icon-192.png", "/assets/icons/icon-512.png"];
 
@@ -17,6 +19,33 @@ self.addEventListener("activate", e => {
 
 self.addEventListener("fetch", e => {
   const url = new URL(e.request.url);
+
+  // Shared straight from TikTok (or any app) through the system share sheet.
+  // A screenshot is parked in its own cache and the app is told to come and
+  // get it; a shared link only needs to survive the redirect.
+  if (e.request.method === "POST" && url.pathname === "/share") {
+    e.respondWith((async () => {
+      let form;
+      try { form = await e.request.formData(); }
+      catch (err) { return Response.redirect("/", 303); }
+
+      const file = form.get("image");
+      if (file && file.size) {
+        const c = await caches.open(SHARE);
+        await c.put(SHARE_KEY, new Response(file, {
+          headers: { "Content-Type": file.type || "image/jpeg" }
+        }));
+        return Response.redirect("/?shared=photo", 303);
+      }
+
+      const said = [form.get("url"), form.get("text"), form.get("title")]
+        .filter(Boolean).join(" ");
+      const link = (said.match(/https?:\/\/\S+/) || [""])[0];
+      return Response.redirect("/?shared=link&u=" + encodeURIComponent(link), 303);
+    })());
+    return;
+  }
+
   if (e.request.method !== "GET") return;
   if (url.pathname.startsWith("/api/")) return;          // never cache API answers
 

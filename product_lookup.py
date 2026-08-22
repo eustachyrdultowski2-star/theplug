@@ -7,12 +7,14 @@ from brand shops, so answer from those first, and fall back to a live read of
 the shop's public Shopify catalog for brands we never scraped.
 """
 import json, os, re, time, urllib.request
+from concurrent.futures import ThreadPoolExecutor
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CACHE = os.path.join(HERE, ".cache")
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/120.0 Safari/537.36")
 SHOP_TTL = 60 * 60 * 24        # a shop's catalog is worth re-reading once a day
+PROBE_TTL = 60 * 60 * 24 * 7   # where a brand sells changes far more slowly
 
 # the detector's garment keys, said the way a shop says them
 GARMENT_WORDS = {
@@ -92,7 +94,7 @@ def score(product, garment):
     return s
 
 
-def shopify(domain, limit=250):
+def shopify(domain, limit=250, quiet=False):
     """The shop's public catalog, cached on disk for a day."""
     os.makedirs(CACHE, exist_ok=True)
     path = os.path.join(CACHE, "shop_" + key(domain) + ".json")
@@ -107,7 +109,7 @@ def shopify(domain, limit=250):
                                  headers={"User-Agent": UA})
     out = []
     try:
-        with urllib.request.urlopen(req, timeout=20) as r:
+        with urllib.request.urlopen(req, timeout=6 if quiet else 20) as r:
             data = json.load(r)
         for p in data.get("products", []):
             imgs = p.get("images") or []
@@ -132,14 +134,71 @@ def shopify(domain, limit=250):
     return out
 
 
+def probe(brand_name):
+    """No row for this brand: work out where it actually sells.
+
+    A TikTok bio link would be the obvious source, but TikTok serves logged-out
+    requests a stripped profile with no link in it. So take the honest route —
+    try the domains a brand of this name would plausibly own, and believe only
+    the one that answers with a real catalog. A shop with three products is a
+    shop; a parked page is not.
+    """
+    os.makedirs(CACHE, exist_ok=True)
+    path = os.path.join(CACHE, "probe_" + key(brand_name) + ".json")
+    if os.path.exists(path) and time.time() - os.path.getmtime(path) < PROBE_TTL:
+        try:
+            with open(path, encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+
+    base = re.sub(r"[^a-z0-9 ]", "", (brand_name or "").lower()).strip()
+    if len(base) < 3:
+        return {"domain": None, "products": []}
+    stems = [base.replace(" ", ""), base.replace(" ", "-")]
+    if " " in base:
+        stems.append(base.split()[0])
+    # brands rarely own the bare name: represent is represent-clo.com, broken
+    # planet is brokenplanetmarket.com. Try the shapes labels actually use.
+    doms = []
+    for st in dict.fromkeys(stems):
+        if len(st) > 2:
+            doms += [st + ".com", st + ".co", st + ".shop", st + ".store",
+                     "shop" + st + ".com", st + ".us", st + ".xyz", st + ".co.uk",
+                     st + "clo.com", st + "-clo.com", st + "studios.com",
+                     st + "market.com", st + "official.com", st + "worldwide.com"]
+    doms = doms[:26]
+
+    def one(dom):
+        prods = shopify(dom, limit=250, quiet=True)
+        return (dom, prods) if len(prods) >= 3 else (dom, None)
+
+    found = {"domain": None, "products": []}
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        for dom, prods in pool.map(one, doms):
+            if prods and not found["domain"]:
+                found = {"domain": dom, "products": prods}
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(found, f)                       # remember the misses too
+    except Exception:
+        pass
+    return found
+
+
 def find(brand_name, garment):
     """The single best product, or None when we would only be guessing."""
     row = find_brand(brand_name)
-    if not row:
-        return None
-    products = row.get("products") or []
-    if not products and row.get("site"):
-        products = shopify(row["site"])
+    site = (row or {}).get("site")
+    products = (row or {}).get("products") or []
+    if not products and site:
+        products = shopify(site)
+    if not products:
+        # unknown brand, or one we hold a name for and nothing else
+        hit = probe(brand_name)
+        if hit.get("domain"):
+            site = "https://" + hit["domain"]
+            products = hit["products"]
     if not products:
         return None
 
@@ -151,16 +210,16 @@ def find(brand_name, garment):
     if not best or best_score < 5:                    # a weak match is worse than none
         return None
 
-    ccy = CCY_BY_COUNTRY.get(row.get("country"), "$")
+    ccy = CCY_BY_COUNTRY.get((row or {}).get("country"), "$")
     price = best.get("price")
     return {
-        "brand": row.get("brand"),
+        "brand": (row or {}).get("brand") or brand_name,
         "name": best.get("title"),
         "price": (ccy + str(price)) if price else None,
         "image": best.get("image"),
         "url": best.get("url"),
-        "site": row.get("site"),
-        "shop": (row.get("site") or "").replace("https://", "").replace("http://", "").strip("/"),
+        "site": site,
+        "shop": (site or "").replace("https://", "").replace("http://", "").strip("/"),
     }
 
 

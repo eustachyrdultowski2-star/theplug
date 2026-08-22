@@ -233,6 +233,14 @@ font-family:Anton,sans-serif;font-size:26px;letter-spacing:1px;text-transform:up
 @media (prefers-reduced-motion:reduce){
   .beam::after{animation:none;background:linear-gradient(90deg,#5b8cff,#ff3d81)}
 }
+.hero-photo{display:inline-flex;align-items:center;gap:8px;background:none;border:0;padding:0;
+  color:var(--muted);font-size:13.5px;font-weight:500;cursor:pointer;margin:-10px 0 18px;
+  font-family:inherit;transition:color .2s}
+.hero-photo:hover{color:var(--accent)}
+.drop-hint{position:fixed;inset:0;z-index:200;display:none;place-items:center;
+  background:rgba(0,0,0,.72);backdrop-filter:blur(6px);font-family:Anton,sans-serif;
+  font-size:clamp(22px,4vw,38px);letter-spacing:.02em;color:var(--fg);text-align:center;padding:30px}
+.drop-hint.on{display:grid}
 .hero-search input{flex:1;background:none;border:none;outline:none;color:var(--fg);font-size:16px}
 .hero-search .btn{padding:0 26px;white-space:nowrap}
 .trending{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
@@ -1009,6 +1017,7 @@ main{padding:34px 0 90px}
 <div class="bg-layer bg-grid"></div>
 <div class="bg-layer bg-vignette"></div>
 <div class="bg-layer bg-grain"></div>
+<div class="drop-hint" id="dropHint"><span data-i18n="photo.dropfull">Drop the screenshot anywhere</span></div>
 
 <header class="nav">
   <div class="wrap nav-inner">
@@ -1056,6 +1065,10 @@ main{padding:34px 0 90px}
       </label>
       <button class="btn btn-primary" id="heroSearchBtn" data-i18n="hero.cta">Search</button>
     </div>
+    <button class="hero-photo" id="heroPhoto">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="15" rx="3"/><circle cx="12" cy="12.5" r="3.4"/><path d="M8 5l1.4-2h5.2L16 5"/></svg>
+      <span data-i18n="hero.photo">…or paste a screenshot — no link needed</span>
+    </button>
     <div class="trending">
       <span class="lbl" data-i18n="hero.trending">Trending:</span>
     </div>
@@ -1344,6 +1357,9 @@ const I18N = {
     "profile.since":"Here since {d}",
     "profile.back":"Back to The Plug",
     "dock.closet":"Wardrobe",
+    "hero.photo":"…or paste a screenshot — no link needed",
+    "photo.dropfull":"Drop the screenshot anywhere",
+    "share.install":"Install The Plug and share straight from TikTok — no copying links.",
     "items.slide":"Slide {n}",
     "items.slideless":"Elsewhere in the video",
     "items.tagged":"{h} tagged in the comments — unverified",
@@ -1504,6 +1520,9 @@ const I18N = {
     "profile.since":"Tu od {d}",
     "profile.back":"Wr\u00f3\u0107 do The Plug",
     "dock.closet":"Szafa",
+    "hero.photo":"…albo wklej zrzut ekranu — link niepotrzebny",
+    "photo.dropfull":"Upuść zrzut gdziekolwiek",
+    "share.install":"Zainstaluj The Plug i udostępniaj prosto z TikToka — bez kopiowania linków.",
     "items.slide":"Slajd {n}",
     "items.slideless":"Reszta filmu",
     "items.tagged":"w komentarzach oznaczono {h} — niepotwierdzone",
@@ -3250,6 +3269,7 @@ document.getElementById("alertsBtn").onclick=()=>{renderAlerts();openOverlay("al
 document.getElementById("openAuth").onclick=()=>{renderAuth("signin");openOverlay("authOverlay");};
 
 /* ============ search wiring ============ */
+document.getElementById("heroPhoto").onclick=()=>openPhotoSearchWith(null);
 document.getElementById("heroSearchBtn").onclick=()=>{query=document.getElementById("heroSearch").value;savedOnly=false;rememberSearch(query);render();document.getElementById("grid").scrollIntoView({behavior:"smooth"});};
 document.getElementById("heroSearch").addEventListener("keydown",e=>{if(e.key==="Enter"){query=e.target.value;rememberSearch(query);render();document.getElementById("grid").scrollIntoView({behavior:"smooth"});}});
 document.getElementById("navSearch").addEventListener("input",e=>{
@@ -3398,6 +3418,7 @@ function renderPhotoSearch(){
       <h3>${t("photo.title")}</h3>
       <p class="desc">${t("photo.desc")}</p>
       <input type="file" id="photoFile" accept="image/*" hidden>
+      <p class="spot-hint" style="margin:-6px 0 12px">${t("share.install")}</p>
       <div class="drop" id="photoDrop">
         <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="margin-bottom:8px"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.8"/><path d="m21 15-5-5L5 21"/></svg>
         <div>${t("photo.drop")}</div>
@@ -3415,6 +3436,49 @@ function renderPhotoSearch(){
     if(f) runImageSearch(f);
   });
 }
+
+/* Every road into the photo search leads here: the hero link, a paste, a file
+   dropped on the page, or a screenshot shared in from another app. */
+function openPhotoSearchWith(file){
+  renderPhotoSearch();
+  openOverlay("submitOverlay");
+  if(file) setTimeout(()=>runImageSearch(file),60);
+}
+
+document.addEventListener("paste",e=>{
+  const items=[...((e.clipboardData&&e.clipboardData.items)||[])];
+  const img=items.find(i=>i.type&&i.type.startsWith("image/"));
+  if(!img) return;
+  const file=img.getAsFile();
+  if(!file) return;
+  e.preventDefault();
+  openPhotoSearchWith(file);
+});
+
+/* Drop a screenshot anywhere on the page, not only on the small dashed box. */
+(function pageDrop(){
+  const hint=()=>document.getElementById("dropHint");
+  const carries=e=>e.dataTransfer && [...(e.dataTransfer.types||[])].includes("Files");
+  let depth=0;
+  document.addEventListener("dragenter",e=>{
+    if(!carries(e)) return;
+    depth++; const h=hint(); if(h) h.classList.add("on");
+  });
+  document.addEventListener("dragleave",e=>{
+    if(!carries(e)) return;
+    depth=Math.max(0,depth-1);
+    if(!depth){ const h=hint(); if(h) h.classList.remove("on"); }
+  });
+  document.addEventListener("dragover",e=>{ if(carries(e)) e.preventDefault(); });
+  document.addEventListener("drop",e=>{
+    if(!carries(e)) return;
+    depth=0; const h=hint(); if(h) h.classList.remove("on");
+    if(e.target.closest && e.target.closest("#photoDrop")) return;   // the box handles its own
+    e.preventDefault();
+    const f=[...e.dataTransfer.files].find(f=>f.type&&f.type.startsWith("image/"));
+    if(f) openPhotoSearchWith(f);
+  });
+})();
 
 function runImageSearch(file){
   const box=document.getElementById("photoResult");
@@ -4231,9 +4295,25 @@ fetch("/api/config").then(r=>r.json())
 if("serviceWorker" in navigator){
   addEventListener("load",()=>navigator.serviceWorker.register("/sw.js").catch(()=>{}));
 }
-(function sharedLink(){
+(function sharedIn(){
   const q=new URLSearchParams(location.search);
-  const shared=q.get("url")||q.get("text");
+
+  // a screenshot shared from another app: the worker parked it, collect it
+  if(q.get("shared")==="photo" && window.caches){
+    caches.open("plug-share")
+      .then(c=>c.match("/__shared-image").then(res=>{
+        if(!res) return;
+        return res.blob().then(b=>{
+          openPhotoSearchWith(new File([b],"shared.jpg",{type:b.type||"image/jpeg"}));
+          return c.delete("/__shared-image");
+        });
+      }))
+      .catch(()=>{});
+    history.replaceState({},"","/");
+    return;
+  }
+
+  const shared=q.get("u")||q.get("url")||q.get("text");
   if(shared && /tiktok\.com|instagram\.com/.test(shared)){
     renderSubmitForm(); openOverlay("submitOverlay");
     const i=document.getElementById("spotUrl");
@@ -4241,6 +4321,7 @@ if("serviceWorker" in navigator){
   } else if(q.get("spot")){
     renderSubmitForm(); openOverlay("submitOverlay");
   }
+  if(q.get("shared")) history.replaceState({},"","/");
 })();
 </script>
 </body>
