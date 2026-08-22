@@ -1,0 +1,72 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1080px;height:4320px;background:#050608}
+.tile{position:relative;width:1080px;height:1080px;overflow:hidden}
+.tile svg{position:absolute;inset:0;width:100%;height:100%}
+.dots{position:absolute;inset:0;z-index:3;opacity:.14;mix-blend-mode:multiply;
+      background-image:radial-gradient(circle at center,#050608 1.3px,transparent 1.5px);
+      background-size:7px 7px}
+.grain{position:absolute;inset:0;z-index:4;opacity:.07;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E")}
+.cap{position:absolute;left:0;right:0;bottom:104px;z-index:5;text-align:center;
+     font-family:'JetBrains Mono',monospace;font-size:30px;letter-spacing:.34em;
+     text-transform:uppercase}
+</style></head><body>
+<div class="tile" style="background:#2f6bff">
+  <svg viewBox="0 0 1080 1080">
+    <path d="M 390 430 L 390 620 A 150.0 150.0 0 0 0 690 620 L 690 430"
+          fill="none" stroke="#050608" stroke-width="132" stroke-linecap="butt"/>
+    <rect x="347.0" y="234" width="86" height="150" rx="18" fill="#050608"/>
+    <rect x="647.0" y="234" width="86" height="150" rx="18" fill="#050608"/>
+    </svg>
+  <div class="dots"></div><div class="grain"></div>
+</div><div class="tile" style="background:#07080a">
+  <svg viewBox="0 0 1080 1080">
+    <defs><filter id="glow"><feGaussianBlur stdDeviation="26"/></filter></defs>
+    <g filter="url(#glow)" opacity=".85">
+    <path d="M 390 430 L 390 620 A 150.0 150.0 0 0 0 690 620 L 690 430"
+          fill="none" stroke="#2f6bff" stroke-width="132" stroke-linecap="butt"/>
+    <rect x="347.0" y="234" width="86" height="150" rx="18" fill="#2f6bff"/>
+    <rect x="647.0" y="234" width="86" height="150" rx="18" fill="#2f6bff"/>
+    </g>
+    
+    <path d="M 390 430 L 390 620 A 150.0 150.0 0 0 0 690 620 L 690 430"
+          fill="none" stroke="#8fb4ff" stroke-width="88" stroke-linecap="butt"/>
+    <rect x="347.0" y="234" width="86" height="150" rx="18" fill="#eaf1ff"/>
+    <rect x="647.0" y="234" width="86" height="150" rx="18" fill="#eaf1ff"/>
+    
+  </svg>
+  <div class="grain"></div>
+</div><div class="tile" style="background:#e9ecf2">
+  <svg viewBox="0 0 1080 1080">
+    <circle cx="540" cy="520" r="300" fill="#0a0d12"/>
+    
+    <rect x="474" y="360" width="60" height="190" rx="26" fill="#e9ecf2"/>
+    <rect x="546" y="360" width="60" height="190" rx="26" fill="#e9ecf2"/>
+    <rect x="470" y="640" width="140" height="52" rx="26" fill="#e9ecf2" opacity=".55"/>
+    
+  </svg>
+  <div class="dots"></div>
+  <div class="cap" style="color:#0a0d12">THE PLUG</div>
+</div><div class="tile" style="background:#050608">
+  <svg viewBox="0 0 1080 1080">
+    <circle cx="540" cy="540" r="392" fill="none" stroke="#1b3ea8" stroke-width="26" opacity=".7"
+            transform="translate(10,0)"/>
+    <circle cx="540" cy="540" r="392" fill="none" stroke="#2f6bff" stroke-width="26"/>
+    <g transform="translate(-9,0)" opacity=".6">
+    <path d="M 390 430 L 390 620 A 150.0 150.0 0 0 0 690 620 L 690 430"
+          fill="none" stroke="#8fb4ff" stroke-width="132" stroke-linecap="butt"/>
+    <rect x="347.0" y="234" width="86" height="150" rx="18" fill="#8fb4ff"/>
+    <rect x="647.0" y="234" width="86" height="150" rx="18" fill="#8fb4ff"/>
+    </g>
+    
+    <path d="M 390 430 L 390 620 A 150.0 150.0 0 0 0 690 620 L 690 430"
+          fill="none" stroke="#2f6bff" stroke-width="132" stroke-linecap="butt"/>
+    <rect x="347.0" y="234" width="86" height="150" rx="18" fill="#2f6bff"/>
+    <rect x="647.0" y="234" width="86" height="150" rx="18" fill="#2f6bff"/>
+    
+  </svg>
+  <div class="dots"></div><div class="grain"></div>
+</div></body></html>
