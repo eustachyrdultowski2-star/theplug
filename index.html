@@ -378,6 +378,16 @@ main{padding:34px 0 90px}
 .feed-more{display:flex;flex-direction:column;align-items:center;gap:8px;padding:26px 0 4px}
 .feed-more:empty{display:none}
 .empty-note{grid-column:1/-1;text-align:center;padding:46px 20px;color:var(--muted)}
+.acct-danger{width:100%;padding:12px;margin-top:10px;border-radius:12px;cursor:pointer;
+  background:none;border:1px solid transparent;color:#e5484d;font:inherit;font-size:13px;
+  transition:border-color .2s,background .2s}
+.acct-danger:hover{border-color:#e5484d33;background:#e5484d0f}
+.acct-danger.solid{background:#e5484d;color:#fff;border-color:#e5484d;font-size:14px;padding:13px}
+.acct-danger.solid:hover{background:#cf3d42}
+.acct-danger[disabled]{opacity:.5;cursor:default}
+.admin-kill{background:none;border:0;color:#e5484d;cursor:pointer;font:inherit;font-size:12px;
+  padding:2px 6px;border-radius:6px}
+.admin-kill:hover{background:#e5484d1a}
 .empty-note p{margin:0 0 18px;font-size:15px;max-width:44ch;margin-inline:auto}
 .feed-count{font-size:12px;color:var(--faint);font-variant-numeric:tabular-nums}
 
@@ -1180,6 +1190,11 @@ const I18N = {
     "stat.pending":"finds waiting to be ID'd",
     "feed.title":"The feed",
     "empty.none":"Nothing matches that. Try another filter.",
+    "acct.delete":"Delete account",
+    "acct.delete_sure":"This removes your account, your saved pieces and every session. It cannot be undone.",
+    "acct.delete_go":"Yes, delete it",
+    "acct.delete_back":"Keep my account",
+    "acct.deleted":"Account deleted",
     "empty.saved":"Nothing saved yet. Tap the heart on a piece and it waits for you here.",
     "empty.browse":"Browse the feed",
     "watch.on":"Notify me","watch.off":"Watching","watch.added":"We'll ping you on a restock or price drop","watch.removed":"Stopped watching",
@@ -1282,6 +1297,11 @@ const I18N = {
     "stat.pending":"znalezisk czeka na rozpoznanie",
     "feed.title":"Feed",
     "empty.none":"Nic nie pasuje. Spróbuj innego filtra.",
+    "acct.delete":"Usuń konto",
+    "acct.delete_sure":"Usuwamy konto, zapisane rzeczy i wszystkie sesje. Tego nie da się cofnąć.",
+    "acct.delete_go":"Tak, usuń",
+    "acct.delete_back":"Zostawiam konto",
+    "acct.deleted":"Konto usunięte",
     "empty.saved":"Nic jeszcze nie zapisane. Kliknij serce przy rzeczy, a poczeka tu na Ciebie.",
     "empty.browse":"Przeglądaj feed",
     "watch.on":"Powiadom mnie","watch.off":"Obserwujesz","watch.added":"Damy znać, gdy wróci albo stanieje","watch.removed":"Przestajesz obserwować",
@@ -2444,6 +2464,7 @@ function openAccountMenu(){
       <div class="kv"><span>${t("acct.saved")}</span><b>${SAVED.size}</b></div>
       <div class="kv"><span>${t("acct.plan")}</span><b>${ME.plus?"Plug+":t("acct.free")}</b></div>
       <button class="btn btn-ghost" style="width:100%;padding:13px;margin-top:16px" id="signOut">${t("acct.signout")}</button>
+      <button class="acct-danger" id="killAccount">${t("acct.delete")}</button>
     </div>`;
   openOverlay("authOverlay");
   document.getElementById("signOut").onclick=()=>{
@@ -2451,6 +2472,25 @@ function openAccountMenu(){
       ME=null; SAVED=new Set(); paintAccount(); render(); closeOverlay("authOverlay");
       toast(t("acct.signedout"));
     });
+  };
+  // deleting is permanent, so it takes a second deliberate press rather than
+  // a browser confirm() nobody reads
+  document.getElementById("killAccount").onclick=()=>{
+    box.innerHTML=`<div class="modal-form">
+        <h3>${t("acct.delete")}</h3>
+        <p class="desc">${t("acct.delete_sure")}</p>
+        <button class="acct-danger solid" id="killYes">${t("acct.delete_go")}</button>
+        <button class="btn btn-ghost" style="width:100%;padding:13px;margin-top:10px" id="killNo">${t("acct.delete_back")}</button>
+      </div>`;
+    document.getElementById("killNo").onclick=openAccountMenu;
+    document.getElementById("killYes").onclick=()=>{
+      const b=document.getElementById("killYes"); b.disabled=true;
+      fetch("/api/auth/delete",{method:"POST"}).finally(()=>{
+        ME=null; SAVED=new Set(); savedOnly=false;
+        paintAccount(); render(); closeOverlay("authOverlay");
+        toast(t("acct.deleted"));
+      });
+    };
   };
 }
 
@@ -3288,10 +3328,17 @@ function route(){
   }
 }
 
+/* The key arrives in the URL once and is remembered, so the dashboard keeps
+   working after a refresh without the key sitting in the address bar. */
+function adminKey(){
+  return new URLSearchParams(location.search).get("key")
+      || localStorage.getItem("plug.adminkey") || "";
+}
+
 async function renderAdmin(){
   showOnly(["adminPage"]); window.scrollTo(0,0);
   const box=document.getElementById("adminPage");
-  const key=new URLSearchParams(location.search).get("key")||localStorage.getItem("plug.adminkey")||"";
+  const key=adminKey();
   if(!key){
     box.innerHTML=`<div class="wrap admin"><h1 class="anton">Admin</h1>
       <p class="spot-hint">Add your key: <code>/admin?key=…</code></p></div>`;
@@ -3325,7 +3372,10 @@ async function renderAdmin(){
 
     <div class="section-head" style="margin-top:34px"><h2>Newest accounts</h2></div>
     <div class="a-list">${(d.recent||[]).map(u=>`<div class="a-row">
-        <span>${esc(u.email)}</span><span class="a-dim">${when(u.created)}</span></div>`).join("")
+        <span>${esc(u.email)}</span>
+        <span class="a-dim">${when(u.created)}
+          <button class="admin-kill" data-kill="${esc(u.email)}">delete</button></span>
+        </div>`).join("")
         || `<p class="spot-hint">No accounts yet.</p>`}</div>
 
     <div class="section-head" style="margin-top:28px"><h2>Most saved</h2></div>
@@ -3345,6 +3395,26 @@ async function renderAdmin(){
       d.storage==="postgres" ? " — accounts survive every deploy."
                              : " — WARNING: this disk is wiped on every restart."}</p>
   </div>`;
+
+  // one press asks, the second one does it — no browser confirm() to click past
+  box.querySelectorAll("[data-kill]").forEach(btn=>{
+    btn.onclick=async ()=>{
+      const email=btn.dataset.kill;
+      if(btn.dataset.armed!=="1"){
+        btn.dataset.armed="1"; btn.textContent="really delete?";
+        setTimeout(()=>{ if(btn.dataset.armed==="1"){
+          btn.dataset.armed="0"; btn.textContent="delete"; } },4000);
+        return;
+      }
+      btn.disabled=true; btn.textContent="deleting…";
+      const r=await fetch("/api/admin/delete",{method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({key:adminKey(),email})});
+      const out=await r.json();
+      if(out.deleted){ toast("Deleted "+email); renderAdmin(); }
+      else { btn.disabled=false; btn.textContent="failed"; }
+    };
+  });
 }
 
 function renderBrandPage(sl){

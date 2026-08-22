@@ -117,7 +117,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if self.path not in ("/api/detect", "/api/image", "/api/watch",
                              "/api/subscribe", "/api/score",
                              "/api/auth/register", "/api/auth/login",
-                             "/api/auth/logout", "/api/save", "/api/auth/google"):
+                             "/api/auth/logout", "/api/save", "/api/auth/google",
+                             "/api/auth/delete", "/api/admin/delete"):
             return self._json(404, {"error": "not found"})
         try:
             n = int(self.headers.get("Content-Length", 0))
@@ -142,6 +143,27 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     return self._json(401, {"error": err})
                 self._set_cookie(auth.open_session(user["id"]))
                 return self._json(200, {"user": user, "saved": auth.saved_ids(user["id"])})
+
+            if self.path == "/api/auth/delete":
+                me = self._me()
+                if not me:
+                    return self._json(401, {"error": "sign_in_required"})
+                auth.delete_user(me["id"])
+                self._set_cookie(None, clear=True)
+                return self._json(200, {"ok": True})
+
+            if self.path == "/api/admin/delete":
+                key = (os.environ.get("ADMIN_KEY") or "").strip()
+                if not key:
+                    return self._json(404, {"error": "admin_disabled"})
+                given = (body.get("key") or "").strip()
+                if not hmac.compare_digest(given, key):
+                    return self._json(401, {"error": "bad_key"})
+                email = (body.get("email") or "").strip()
+                if not email:
+                    return self._json(400, {"error": "no_email"})
+                gone = auth.delete_by_email(email)
+                return self._json(200, {"deleted": gone})
 
             if self.path == "/api/auth/logout":
                 auth.close_session(self._token())

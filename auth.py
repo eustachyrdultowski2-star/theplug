@@ -99,6 +99,40 @@ def close_session(token: str):
     store.update("sessions", [], lambda ss: [s for s in ss if s["token"] != token])
 
 
+# ---------- closing an account ----------
+def delete_user(user_id: str) -> bool:
+    """Remove the account and everything attached to it.
+
+    The privacy policy promises deletion on request, so this really deletes:
+    the row, every session (so any other device is signed out immediately) and
+    the saved list. There is no soft-delete flag to forget about later.
+    """
+    found = [False]
+
+    def drop_user(users):
+        keep = [u for u in users if u["id"] != user_id]
+        found[0] = len(keep) != len(users)
+        return keep
+
+    store.update("users", [], drop_user)
+    if not found[0]:
+        return False
+
+    store.update("sessions", [], lambda ss: [x for x in ss if x["user"] != user_id])
+
+    def drop_saved(all_saved):
+        all_saved.pop(user_id, None)
+        return all_saved
+
+    store.update("saved", {}, drop_saved)
+    return True
+
+
+def delete_by_email(email: str) -> bool:
+    user = find_user(email)
+    return delete_user(user["id"]) if user else False
+
+
 # ---------- saved items ----------
 def saved_ids(user_id: str):
     return store.load("saved", {}).get(user_id, [])
