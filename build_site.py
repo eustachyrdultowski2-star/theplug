@@ -7,7 +7,9 @@ sys.stdout.reconfigure(encoding="utf-8")
 HERE = os.path.dirname(os.path.abspath(__file__))
 DIST = os.path.join(HERE, "dist")
 API  = os.environ.get("PLUG_API", "")            # e.g. https://theplug-api.onrender.com
-SITE = os.environ.get("PLUG_SITE", "https://theplug.co").rstrip("/")   # the real domain
+# theplug.co belongs to somebody else; the sitemap pointed at their site.
+SITE = os.environ.get(
+    "PLUG_SITE", "https://theplug.eustachyrdultowski2.workers.dev").rstrip("/")
 BEACON = os.environ.get("PLUG_ANALYTICS", "")   # Cloudflare Web Analytics token
 
 FILES = ["index.html", "manifest.webmanifest", "sw.js"]
