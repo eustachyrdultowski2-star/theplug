@@ -2319,9 +2319,10 @@ function renderAuth(mode){
   const ab=document.getElementById("authBody");
   ab.querySelectorAll(".auth-tab").forEach(b=>b.onclick=()=>renderAuth(b.dataset.mode));
   ab.querySelector("[data-switch]").onclick=()=>renderAuth(up?"signin":"signup");
-  ab.querySelectorAll("[data-social]").forEach(b=>b.onclick=()=>toast(lang==="pl"?"Prototyp — logowanie social jest udawane":"Prototype — social sign-in is mocked"));
   ab.querySelectorAll("[data-toggle]").forEach(b=>b.onclick=()=>{const i=document.getElementById(b.dataset.toggle);i.type=i.type==="password"?"text":"password";});
   document.getElementById("authForm").onsubmit=(e)=>{e.preventDefault();submitAuth(up);};
+  // the slot above is empty until Google paints its own button into it
+  mountGoogle();
 }
 
 function submitAuth(up){
