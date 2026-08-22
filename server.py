@@ -77,14 +77,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if self.path.startswith("/api/"):
             name = self.path.split("?")[0]
             if name.startswith("/api/admin/stats"):
-                key = os.environ.get("ADMIN_KEY")
+                # Render's value box is a textarea, so a stray newline is easy
+                key = (os.environ.get("ADMIN_KEY") or "").strip()
                 if not key:
                     return self._json(404, {"error": "admin_disabled"})
                 given = ""
                 if "?" in self.path:
                     from urllib.parse import parse_qs
                     given = (parse_qs(self.path.split("?", 1)[1]).get("key") or [""])[0]
-                if not hmac.compare_digest(given, key):
+                if not hmac.compare_digest(given.strip(), key):
                     return self._json(401, {"error": "bad_key"})
                 return self._json(200, admin_stats())
 
