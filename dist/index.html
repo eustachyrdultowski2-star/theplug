@@ -3057,7 +3057,7 @@ function renderLegal(anchor){
   // so wait for layout to settle before jumping to the anchor
   const target = anchor && document.getElementById(anchor);
   if(!target){ window.scrollTo(0,0); return; }
-  requestAnimationFrame(()=>requestAnimationFrame(()=>target.scrollIntoView()));
+  setTimeout(()=>target.scrollIntoView(),0);
 }
 
 function route(){
