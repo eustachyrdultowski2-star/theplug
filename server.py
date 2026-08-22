@@ -6,6 +6,7 @@ import re, html, urllib.request, urllib.parse
 import time
 import brand_detect
 import image_search
+import product_lookup
 import hmac, time as _t
 import store
 import auth
@@ -131,6 +132,20 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 if not hmac.compare_digest(given.strip(), key):
                     return self._json(401, {"error": "bad_key"})
                 return self._json(200, admin_stats())
+
+            if name == "/api/product":
+                # knowing the brand is half an answer; this is the other half —
+                # the actual piece, its photo, its price and where it is sold
+                q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+                brand = (q.get("brand") or [""])[0].strip()
+                cat = (q.get("cat") or [""])[0].strip()
+                if not brand:
+                    return self._json(400, {"error": "brand_required"})
+                try:
+                    found = product_lookup.find(brand, cat)
+                except Exception:
+                    found = None                     # a shop being down is not an error here
+                return self._json(200, {"product": found})
 
             if name == "/api/config":
                 return self._json(200, {"googleClientId":

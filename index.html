@@ -288,6 +288,52 @@ main{padding:34px 0 90px}
 .likes{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--faint)}
 
 
+/* ---------- one video, several slides ---------- */
+.item-slide{font-family:Anton,sans-serif;font-size:12px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--accent);margin:14px 0 7px}
+.item-slide:first-child{margin-top:2px}
+.item-tag{font-size:11.5px;color:var(--faint);margin-top:3px}
+.item-prod:empty{display:none}
+.prod-card{display:flex;align-items:center;gap:10px;margin-top:9px;padding:8px;text-decoration:none;
+  background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm)}
+.prod-card:hover{border-color:color-mix(in srgb,var(--accent) 55%,var(--border))}
+.prod-card img{width:44px;height:56px;object-fit:cover;border-radius:6px;flex:none;background:var(--surface-2)}
+.prod-body{min-width:0;flex:1}
+.prod-body b{display:block;font-size:13px;font-weight:700;color:var(--fg);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prod-body span{display:block;font-size:11.5px;color:var(--muted);margin-top:2px}
+.prod-go{color:var(--accent);font-size:15px;flex:none}
+
+/* ---------- the cards light up under the cursor ---------- */
+.card{position:relative}
+.card::before,.card::after{content:"";position:absolute;inset:0;border-radius:inherit;
+  opacity:0;transition:opacity .3s var(--ease);pointer-events:none}
+.card::before{z-index:2;background:radial-gradient(210px 210px at var(--gx,-400px) var(--gy,-400px),
+  hsl(var(--ghue,220) 95% 70% / .14),transparent 62%)}
+.card::after{z-index:3;padding:1.2px;
+  background:radial-gradient(240px 240px at var(--gx,-400px) var(--gy,-400px),
+    hsl(var(--ghue,220) 95% 66%),transparent 66%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  mask-composite:exclude}
+.card:hover::before,.card:hover::after{opacity:1}
+@media(hover:none){.card::before,.card::after{display:none}}
+
+/* ---------- recently checked ---------- */
+.rc-row{display:flex;align-items:center;gap:14px;padding:13px 15px;background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px}
+.rc-main{min-width:0;flex:1}
+.rc-main b{display:block;font-size:14.5px;font-weight:700;color:var(--fg);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rc-main span{display:block;font-size:12.5px;color:var(--muted);margin-top:2px}
+.rc-when{font-size:12px;color:var(--faint);white-space:nowrap}
+.rc-row .btn{padding:8px 14px;font-size:13px;white-space:nowrap}
+.rc-chips{display:flex;flex-wrap:wrap;gap:8px}
+.rc-chip{background:var(--surface);border:1px solid var(--border);border-radius:999px;
+  padding:9px 16px;font-size:13.5px;font-weight:600;color:var(--fg);cursor:pointer}
+.rc-chip:hover{border-color:color-mix(in srgb,var(--accent) 55%,var(--border))}
+@media(max-width:560px){.rc-when{display:none}}
+
 /* ---------- alerts / leaderboard / weekly drop ---------- */
 #alertsBtn{position:relative}
 .bell-dot{position:absolute;top:7px;right:8px;width:8px;height:8px;border-radius:50%;
@@ -1117,6 +1163,11 @@ main{padding:34px 0 90px}
   <div class="wrap" id="closetBody"></div>
 </section>
 
+<!-- the last links, pieces and searches, kept in this browser only -->
+<section class="legal-wrap" id="recentPage" style="display:none">
+  <div class="wrap" id="recentBody"></div>
+</section>
+
 <!-- somebody else's wardrobe, when they chose to share it -->
 <section class="legal-wrap" id="profilePage" style="display:none">
   <div class="wrap" id="profileBody"></div>
@@ -1293,6 +1344,19 @@ const I18N = {
     "profile.since":"Here since {d}",
     "profile.back":"Back to The Plug",
     "dock.closet":"Wardrobe",
+    "items.slide":"Slide {n}",
+    "items.slideless":"Elsewhere in the video",
+    "items.tagged":"{h} tagged in the comments — unverified",
+    "prod.at":"at",
+    "recent.title":"Recently checked",
+    "recent.sub":"The links you pasted, the pieces you opened and what you searched for. Kept on this device only.",
+    "recent.links":"Links you checked",
+    "recent.items":"Pieces you opened",
+    "recent.searches":"Searches",
+    "recent.again":"Check again",
+    "recent.nobrand":"nothing recognised",
+    "recent.clear":"Clear this list",
+    "recent.empty":"Nothing here yet. Paste a link and it will land in this list.",
     "rank.title":"Ranks",
     "rank.sub":"Every confirmed ID moves you up. Ranks are earned, never bought.",
     "rank.you":"Your rank",
@@ -1385,7 +1449,7 @@ const I18N = {
     "id.votes":"{n} guessed {b}","id.agree":"Agree","id.confirm_toast":"{b} confirmed ✦ +1 look-up",
     "id.rule":"Rewards unlock when two people name the same brand.",
     "submit.title":"Submit a find","submit.desc":"Drop a reel link or a screenshot. The community helps figure out what it is.","submit.drop":"Drag a screenshot here, or click to upload","submit.link":"Reel / TikTok link","submit.link.ph":"https://instagram.com/reel/…","submit.note":"What are you after? (optional)","submit.note.ph":"“The oversized washed denim jacket at 0:12”","submit.send":"Post to the community","submit.done.title":"You're in the queue","submit.done.desc":"Your find is live. We'll ping you the moment someone tags the brand.","submit.done.btn":"Nice",
-    "d.link":"Link","d.search":"Search","d.photo":"Photo","d.feed":"Feed","d.vibes":"Vibes","d.id":"Help ID","d.saved":"Saved","d.closet":"Wardrobe","d.plus":"Plug+","d.account":"Account",
+    "d.link":"Link","d.search":"Search","d.photo":"Photo","d.feed":"Feed","d.vibes":"Vibes","d.id":"Help ID","d.saved":"Saved","d.recent":"Recent","d.closet":"Wardrobe","d.plus":"Plug+","d.account":"Account",
     "dock.link":"Spot from link","dock.search":"Search by name","dock.photo":"Search by photo","dock.feed":"Feed","dock.vibes":"Vibes","dock.id":"Help ID","dock.saved":"Saved","dock.plus":"Plug+","dock.account":"Account",
     "photo.title":"Search by photo","photo.desc":"Drop a screenshot of the fit — we'll match it against the catalog.","photo.drop":"Drop an image here, or click to upload","photo.soon":"Visual search is coming with Plug+ — for now, paste a link or search by name.",
     "flux.fetching":"opening the clip","flux.reading":"reading comments","flux.matching":"matching brands","flux.uploading":"uploading","flux.scanning":"scanning the fit","flux.done":"all done",
@@ -1440,6 +1504,19 @@ const I18N = {
     "profile.since":"Tu od {d}",
     "profile.back":"Wr\u00f3\u0107 do The Plug",
     "dock.closet":"Szafa",
+    "items.slide":"Slajd {n}",
+    "items.slideless":"Reszta filmu",
+    "items.tagged":"w komentarzach oznaczono {h} — niepotwierdzone",
+    "prod.at":"w",
+    "recent.title":"Ostatnio sprawdzane",
+    "recent.sub":"Wklejone linki, otwarte rzeczy i wpisane hasła. Trzymane tylko na tym urządzeniu.",
+    "recent.links":"Sprawdzone linki",
+    "recent.items":"Otwarte rzeczy",
+    "recent.searches":"Wyszukiwania",
+    "recent.again":"Sprawdź jeszcze raz",
+    "recent.nobrand":"nic nie rozpoznano",
+    "recent.clear":"Wyczyść listę",
+    "recent.empty":"Jeszcze pusto. Wklej link, a wyląduje na tej liście.",
     "rank.title":"Rangi",
     "rank.sub":"Każda potwierdzona identyfikacja pcha Cię w górę. Rang się nie kupuje.",
     "rank.you":"Twoja ranga",
@@ -1532,7 +1609,7 @@ const I18N = {
     "id.votes":"{n} osoba typuje {b}","id.agree":"Zgadzam się","id.confirm_toast":"{b} potwierdzone ✦ +1 wyszukiwanie",
     "id.rule":"Nagroda odblokowuje się, gdy dwie osoby podadzą tę samą markę.",
     "submit.title":"Wrzuć znalezisko","submit.desc":"Wklej link do rolki albo screena. Społeczność pomoże ustalić, co to.","submit.drop":"Przeciągnij screena tutaj albo kliknij, by dodać","submit.link":"Link do rolki / TikToka","submit.link.ph":"https://instagram.com/reel/…","submit.note":"Czego szukasz? (opcjonalnie)","submit.note.ph":"„Ta oversize'owa jeansowa kurtka w 0:12”","submit.send":"Wrzuć do społeczności","submit.done.title":"Jesteś w kolejce","submit.done.desc":"Twoje znalezisko jest na tablicy. Damy znać, gdy tylko ktoś otaguje markę.","submit.done.btn":"Spoko",
-    "d.link":"Link","d.search":"Szukaj","d.photo":"Zdjęcie","d.feed":"Feed","d.vibes":"Klimaty","d.id":"Rozpoznaj","d.saved":"Zapisane","d.closet":"Szafa","d.plus":"Plug+","d.account":"Konto",
+    "d.link":"Link","d.search":"Szukaj","d.photo":"Zdjęcie","d.feed":"Feed","d.vibes":"Klimaty","d.id":"Rozpoznaj","d.saved":"Zapisane","d.recent":"Ostatnie","d.closet":"Szafa","d.plus":"Plug+","d.account":"Konto",
     "dock.link":"Z linku","dock.search":"Szukaj po nazwie","dock.photo":"Szukaj po zdjęciu","dock.feed":"Feed","dock.vibes":"Klimaty","dock.id":"Rozpoznaj","dock.saved":"Zapisane","dock.plus":"Plug+","dock.account":"Konto",
     "photo.title":"Szukaj po zdjęciu","photo.desc":"Wrzuć screena ciucha — dopasujemy go do katalogu.","photo.drop":"Przeciągnij zdjęcie albo kliknij, by dodać","photo.soon":"Wyszukiwanie wizualne będzie w Plug+ — na razie wklej link albo szukaj po nazwie.",
     "flux.fetching":"otwieram film","flux.reading":"czytam komentarze","flux.matching":"dopasowuję marki","flux.uploading":"wysyłam zdjęcie","flux.scanning":"skanuję ciuch","flux.done":"gotowe",
@@ -2114,6 +2191,7 @@ function submitId(item,named,row){
 /* ============ modals ============ */
 function openDetail(id){
   const it=ITEMS.find(x=>x.id===id); if(!it) return;
+  rememberItem(it);
   const type = it.indie ? t("detail.indie") : t("detail.big");
   document.getElementById("detailBody").innerHTML=`
     <div class="img"><img src="${PHOTO(it)}" onerror="this.onerror=null;this.src='${IMG(it.seed)}'" alt="${it.brand} ${it.name}"></div>
@@ -2178,6 +2256,7 @@ async function runDetect(){
     if(!r.ok || data.error){ flux.destroy(); box.innerHTML=`<p class="spot-hint">${t("spot.error")}</p>`; }
     else {
       freeLookups=Math.max(0,freeLookups-1);
+      rememberLink(url,data);
       flux.done(()=>renderDetectResult(data,box));
     }
   }catch(e){ flux.destroy(); box.innerHTML=`<p class="spot-hint">${t("spot.error")}</p>`; }
@@ -2278,10 +2357,9 @@ function brandLink(g){
   if(known&&known.handle) return "https://instagram.com/"+known.handle.replace("@","");
   if(/\.(com|shop|co|xyz|store)$/i.test(g.brand||""))    // someone posted a domain
     return "https://"+g.brand.replace(/^@/,"");
-  if(g.verified_handle && g.handle){                      // a real @tag from the comments
-    const slug=g.handle.replace(/^@/,"").replace(/\$/g,"s").replace(/[^a-zA-Z0-9._]/g,"");
-    if(slug.length>1) return "https://instagram.com/"+slug.toLowerCase();
-  }
+  // a comment @tag is one person's guess: it has landed on a private stranger
+  // and on a profile that no longer exists. The tag is shown as evidence in
+  // the row instead, and the button searches our own catalog.
   return null;                                            // we honestly don't know
 }
 function addBrandToDB(g){
@@ -2322,15 +2400,18 @@ const CAT_ICON={
 
 function renderItemBreakdown(data,box){
   const meta=`${data.comment_count||0} ${t("spot.comments")}${data.cached?" · "+t("spot.cached"):""}`;
-  const rows=data.items.map((it,i)=>{
+  const rowHTML=(it,i)=>{
     const alt = (it.alternatives&&it.alternatives.length)
       ? `<div class="item-alt">${t("items.alt")}: ${it.alternatives.map(esc).join(", ")}</div>` : "";
+    const tag = it.handle
+      ? `<div class="item-tag">${t("items.tagged").replace("{h}",esc(it.handle))}</div>` : "";
     return `<div class="item-row" data-i="${i}">
       <span class="item-ico">${CAT_ICON[it.category]||CAT_ICON.shirt}</span>
       <div class="item-main">
         <div class="item-cat">${t("cat."+it.category)||it.category}</div>
         <div class="item-brand">${esc(it.brand)}</div>
-        ${alt}
+        ${tag}${alt}
+        <div class="item-prod" data-prod="${i}"></div>
       </div>
       <div class="item-right">
         <span class="item-conf">${it.confidence}%</span>
@@ -2341,6 +2422,25 @@ function renderItemBreakdown(data,box){
                       </button>`;})()}
       </div>
     </div>`;
+  };
+
+  // A photo carousel is several outfits, and the comments say which one they
+  // mean ("slide 4", "2nd pic"). Two pairs of jeans in one video are two
+  // different pairs of jeans, so keep the slides apart instead of stacking
+  // every answer into one list.
+  const groups=new Map();
+  data.items.forEach((it,i)=>{
+    const k=it.slide||0;
+    if(!groups.has(k)) groups.set(k,[]);
+    groups.get(k).push([it,i]);
+  });
+  const order=[...groups.keys()].sort((a,b)=>(a||99)-(b||99));
+  const labelled=order.some(k=>k) && groups.size>1;
+  const rows=order.map(k=>{
+    const head = !labelled ? ""
+      : k ? `<div class="item-slide">${t("items.slide").replace("{n}",k)}</div>`
+          : `<div class="item-slide">${t("items.slideless")}</div>`;
+    return head + groups.get(k).map(([it,i])=>rowHTML(it,i)).join("");
   }).join("");
   box.innerHTML=`<div class="spot-card">
       <div class="spot-lead">${t("items.title")}</div>
@@ -2352,6 +2452,28 @@ function renderItemBreakdown(data,box){
         <button class="btn btn-ghost" style="flex:1;padding:12px" id="tryAgain">${t("spot.again")}</button>
       </div>
     </div><div class="spot-left">${freeLookups} ${t("spot.left")}</div>`;
+  // the brand name is half an answer. Ask the server for the actual piece —
+  // the one the shop sells — and slot its photo, price and link under the row.
+  data.items.forEach((it,i)=>{
+    const slot=box.querySelector(`[data-prod="${i}"]`);
+    if(!slot) return;
+    fetch("/api/product?brand="+encodeURIComponent(it.brand)+"&cat="+encodeURIComponent(it.category))
+      .then(r=>r.json())
+      .then(d=>{
+        const p=d&&d.product;
+        if(!p||!slot.isConnected) return;
+        slot.innerHTML=`<a class="prod-card" href="${esc(p.url)}" target="_blank" rel="noopener noreferrer">
+            ${p.image?`<img src="${esc(p.image)}" alt="" loading="lazy" onerror="this.remove()">`:""}
+            <span class="prod-body">
+              <b>${esc(p.name||"")}</b>
+              <span>${p.price?esc(p.price)+" · ":""}${t("prod.at")} ${esc(p.shop||"")}</span>
+            </span>
+            <span class="prod-go">→</span>
+          </a>`;
+      })
+      .catch(()=>{});                                  // a shop being down changes nothing here
+  });
+
   // no trustworthy link → search our own catalog for that name instead
   box.querySelectorAll("[data-find]").forEach(b=> b.onclick=()=>{
     const q=b.dataset.find;
@@ -2608,6 +2730,136 @@ function loadMe(){
   }).catch(()=>{});
 }
 
+
+/* ---------- recently checked -----------------------------------------------
+   A lookup you cannot find your way back to is a lookup you run twice. The
+   last links, pieces and searches live in this browser and nowhere else — no
+   account, nothing sent to the server. */
+const RECENT_KEY = "plug.recent", RECENT_MAX = 24;
+
+function recentAll(){
+  try{ return JSON.parse(localStorage.getItem(RECENT_KEY)) || {}; }catch(e){ return {}; }
+}
+
+function recentPush(kind, row){
+  const all = recentAll();
+  const list = (all[kind] || []).filter(r => r.key !== row.key);   // the same thing twice is one entry, moved to the top
+  list.unshift(Object.assign({when: Date.now()}, row));
+  all[kind] = list.slice(0, RECENT_MAX);
+  try{ localStorage.setItem(RECENT_KEY, JSON.stringify(all)); }catch(e){}
+}
+
+function rememberLink(url, data){
+  const names = (data.items || []).map(i => i.brand).filter(Boolean);
+  if(data.guess && data.guess.brand) names.unshift(data.guess.brand);
+  recentPush("links", {key: url, url: url, brands: names.slice(0, 3)});
+}
+
+function rememberItem(it){
+  if(!it) return;
+  recentPush("items", {key: String(it.id), id: it.id, name: it.name, brand: it.brand,
+                       price: it.price || "", photo: PHOTO(it)});
+}
+
+function rememberSearch(q){
+  q = (q || "").trim();
+  if(q.length < 2) return;
+  recentPush("searches", {key: q.toLowerCase(), q: q});
+}
+
+function recentAgo(ts){
+  const m = Math.max(0, Math.round((Date.now() - ts) / 60000));
+  if(m < 1)    return "now";
+  if(m < 60)   return m + " min";
+  if(m < 1440) return Math.round(m / 60) + " h";
+  return Math.round(m / 1440) + " d";
+}
+
+function recentShortUrl(u){
+  const bare = String(u || "").split("?")[0]
+    .replace("https://", "").replace("http://", "").replace("www.", "");
+  return bare.length > 52 ? bare.slice(0, 52) + "…" : bare;
+}
+
+/* The feed cards carry a spotlight that follows the pointer: one listener for
+   the whole grid, the hue drifting with how far across the screen you are. */
+document.addEventListener("pointermove", e => {
+  const card = e.target.closest && e.target.closest(".card");
+  if(!card) return;
+  const r = card.getBoundingClientRect();
+  card.style.setProperty("--gx", (e.clientX - r.left) + "px");
+  card.style.setProperty("--gy", (e.clientY - r.top) + "px");
+  card.style.setProperty("--ghue", Math.round(200 + (e.clientX / window.innerWidth) * 140));
+}, {passive:true});
+
+function renderRecent(){
+  showOnly(["recentPage"]); window.scrollTo(0, 0);
+  const box = document.getElementById("recentBody");
+  const all = recentAll();
+  const links = all.links || [], items = all.items || [], searches = all.searches || [];
+
+  const head = `<div class="legal-head"><h1>${t("recent.title")}</h1>
+      <p class="legal-updated">${t("recent.sub")}</p></div>`;
+
+  if(!links.length && !items.length && !searches.length){
+    box.innerHTML = head + `<div class="empty-note"><p>${t("recent.empty")}</p>
+      <button class="btn btn-ghost" id="recentSpot">${t("dock.link")}</button></div>`;
+    document.getElementById("recentSpot").onclick = () => {
+      renderSubmitForm(); openOverlay("submitOverlay");
+      setTimeout(() => document.getElementById("spotUrl")?.focus(), 150);
+    };
+    return;
+  }
+
+  const linkRows = links.map(r => `<div class="rc-row">
+      <div class="rc-main">
+        <b>${esc(recentShortUrl(r.url))}</b>
+        <span>${r.brands && r.brands.length ? esc(r.brands.join(" · ")) : t("recent.nobrand")}</span>
+      </div>
+      <span class="rc-when">${recentAgo(r.when)}</span>
+      <button class="btn btn-ghost" data-again="${esc(r.url)}">${t("recent.again")}</button>
+    </div>`).join("");
+
+  const itemCards = items.map(r => `<div class="cl-card">
+      <a href="/item/${encodeURIComponent(r.id)}" data-route>
+        ${r.photo ? `<img src="${esc(r.photo)}" alt="" loading="lazy" onerror="this.remove()">`
+                  : `<div class="cl-noimg">${esc((r.brand || "?").slice(0, 2).toUpperCase())}</div>`}
+        <div class="cl-body"><b>${esc(r.name || "—")}</b>
+          <span>${esc(r.brand || "")}${r.price ? " · " + esc(r.price) : ""}</span></div>
+      </a>
+    </div>`).join("");
+
+  const chips = searches.map(r =>
+    `<button class="rc-chip" data-q="${esc(r.q)}">${esc(r.q)}</button>`).join("");
+
+  const block = (title, body) => body
+    ? `<div class="section-head" style="margin-top:30px"><h2>${title}</h2></div>${body}`
+    : "";
+
+  box.innerHTML = head
+    + block(t("recent.links"), linkRows)
+    + block(t("recent.items"), itemCards ? `<div class="cl-grid">${itemCards}</div>` : "")
+    + block(t("recent.searches"), chips ? `<div class="rc-chips">${chips}</div>` : "")
+    + `<div style="margin-top:26px"><button class="btn btn-ghost" id="recentClear">${t("recent.clear")}</button></div>`;
+
+  box.querySelectorAll("[data-again]").forEach(b => b.onclick = () => {
+    renderSubmitForm(); openOverlay("submitOverlay");
+    setTimeout(() => {
+      const i = document.getElementById("spotUrl");
+      if(i){ i.value = b.dataset.again; i.focus(); }
+    }, 150);
+  });
+  box.querySelectorAll("[data-q]").forEach(b => b.onclick = () => {
+    query = b.dataset.q; filterCat = null; filterStyle = null; savedOnly = false;
+    go("/feed");
+    const nav = document.getElementById("navSearch"); if(nav) nav.value = query;
+    setTimeout(() => { renderFilters(); render(); }, 60);
+  });
+  document.getElementById("recentClear").onclick = () => {
+    try{ localStorage.removeItem(RECENT_KEY); }catch(e){}
+    renderRecent();
+  };
+}
 
 /* ---------- the wardrobe ---------------------------------------------------
    Two shelves: what somebody owns, and what they are still after. The second
@@ -2998,8 +3250,8 @@ document.getElementById("alertsBtn").onclick=()=>{renderAlerts();openOverlay("al
 document.getElementById("openAuth").onclick=()=>{renderAuth("signin");openOverlay("authOverlay");};
 
 /* ============ search wiring ============ */
-document.getElementById("heroSearchBtn").onclick=()=>{query=document.getElementById("heroSearch").value;savedOnly=false;render();document.getElementById("grid").scrollIntoView({behavior:"smooth"});};
-document.getElementById("heroSearch").addEventListener("keydown",e=>{if(e.key==="Enter"){query=e.target.value;render();document.getElementById("grid").scrollIntoView({behavior:"smooth"});}});
+document.getElementById("heroSearchBtn").onclick=()=>{query=document.getElementById("heroSearch").value;savedOnly=false;rememberSearch(query);render();document.getElementById("grid").scrollIntoView({behavior:"smooth"});};
+document.getElementById("heroSearch").addEventListener("keydown",e=>{if(e.key==="Enter"){query=e.target.value;rememberSearch(query);render();document.getElementById("grid").scrollIntoView({behavior:"smooth"});}});
 document.getElementById("navSearch").addEventListener("input",e=>{
   query=e.target.value; savedOnly=false; render();});
 
@@ -3419,6 +3671,7 @@ function brandBySlug(sl){
    loud, with the current one marked. */
 const TABS = [
   {path:"/feed",    i18n:"d.feed"},
+  {path:"/recent",  i18n:"d.recent"},
   {path:"/closet",  i18n:"d.closet"},
   {path:"/help-id", i18n:"d.id"},
   {path:"/faq",     i18n:"foot.faq"},
@@ -3466,7 +3719,7 @@ function showOnly(ids){
   // the leaderboard ended up trailing the wardrobe.
   const all=["heroSection","tiltSection","vibesSection","featuredSection","feedSection",
              "dropSection","boardSection","community","faq","brandPage","itemPage",
-             "adminPage","legalPage","closetPage","profilePage"];
+             "adminPage","legalPage","closetPage","profilePage","recentPage"];
   all.forEach(id=>{const el=document.getElementById(id); if(el) el.style.display=ids.includes(id)?"":"none";});
 }
 
@@ -3787,6 +4040,7 @@ function route(){
   }
   if(p==="/faq"){ showOnly(["faq"]); window.scrollTo(0,0); return; }
   if(p==="/help-id"){ showOnly(["community","boardSection"]); renderBoard(); window.scrollTo(0,0); return; }
+  if(p==="/recent"){ renderRecent(); return; }
   if(p==="/closet"){ renderCloset(); return; }
   if(p.startsWith("/u/")){ renderProfile(decodeURIComponent(p.slice(3))); return; }
   if(p==="/admin"){ renderAdmin(); return; }
@@ -3932,6 +4186,7 @@ function renderItemPage(id){
   const box=document.getElementById("itemPage");
   if(!it){ box.innerHTML=`<div class="wrap" style="padding:60px 20px"><p class="spot-hint">${t("item.missing")}</p>
       <a href="/" data-route class="btn btn-ghost" style="display:inline-block;margin-top:14px;padding:10px 18px">${t("brand.back")}</a></div>`; return; }
+  rememberItem(it);
   const b=knownBrand(it.brand);
   const shop=it.link||(b&&b.site)||null;
   box.innerHTML=`<div class="wrap item-page">
