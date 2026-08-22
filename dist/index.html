@@ -1660,8 +1660,10 @@ function renderFooter(){
   const box=document.getElementById("footCols"); if(!box) return;
   const y=document.getElementById("footYear"); if(y) y.textContent=new Date().getFullYear();
   const cols=[
-    {h:"foot.product",links:[["foot.search","#grid"],["foot.vibes","#vibeRow"],["foot.spot","#spot"],["foot.plus","#plus"]]},
-    {h:"foot.company", links:[["foot.about","#"],["foot.brands","#"],["foot.contact","#"],["foot.faq","#faq"]]},
+    {h:"foot.product",links:[["foot.search","/#grid"],["foot.vibes","/#vibeRow"],
+                              ["foot.spot","/#spot"],["foot.plus","/#plus"]]},
+    {h:"foot.company", links:[["foot.about","/about"],["foot.brands","/brands"],
+                              ["foot.contact","/contact"],["foot.faq","/faq"]]},
     {h:"foot.legal",   links:[["foot.terms","/legal#terms"],["foot.privacy","/legal#privacy"],
                               ["foot.cookies","/legal#cookies"],["foot.rules","/legal#rules"]]},
     {h:"foot.social",  links:[["Instagram","https://instagram.com","instagram"],["TikTok","https://tiktok.com","tiktok"],
@@ -2966,7 +2968,7 @@ const LEGAL = {
     <p><strong>Your rights.</strong> Write to the address below and we will send
     you a copy of your data or delete it. Deletion is permanent and takes at most
     a few days.</p>
-    <p><strong>Contact.</strong> hello@theplug.app</p>`},
+    <p><strong>Contact.</strong> ${CONTACT}</p>`},
   {id:"cookies", h:"Cookies", body:`
     <p>One cookie, and it only appears after you sign in. It keeps you signed in
     and nothing else &mdash; no advertising, no tracking across other sites.</p>
@@ -3018,7 +3020,7 @@ const LEGAL = {
     <p><strong>Twoje prawa.</strong> Napisz na adres poniżej &mdash; wyślemy kopię
     Twoich danych albo je usuniemy. Usunięcie jest trwałe i zajmuje najwyżej
     kilka dni.</p>
-    <p><strong>Kontakt.</strong> hello@theplug.app</p>`},
+    <p><strong>Kontakt.</strong> ${CONTACT}</p>`},
   {id:"cookies", h:"Cookies", body:`
     <p>Jedno ciasteczko i pojawia się dopiero po zalogowaniu. Trzyma Cię
     zalogowanego i nic poza tym &mdash; żadnych reklam, żadnego śledzenia po innych
@@ -3042,6 +3044,175 @@ const LEGAL = {
     a przy powtórkach — konto.</p>`},
  ]
 };
+
+/* ---- about / for brands / contact -----------------------------------------
+   Same shape as LEGAL: a title and a handful of sections, rendered into the
+   page the router already shows. The two counts are read from the catalog so
+   the copy cannot drift away from what is actually in the database. */
+const CONTACT = "hello@theplug.app";   // one place; change it here only
+const BRAND_COUNT = (typeof BRANDS!=="undefined") ? BRANDS.length : 0;
+const ITEM_COUNT  = (typeof CATALOG!=="undefined") ? CATALOG.length : 0;
+const DOCS = {
+ en:{
+  about:{title:"About The Plug", blocks:[
+   {h:"What this is", body:`
+    <p>You see a jacket in a fifteen-second clip. The comments are four hundred
+    people asking the same question and nobody answering. That is the whole
+    problem, and this is the whole app.</p>
+    <p>Paste the link. The Plug reads the public comments underneath, works out
+    which brand made which piece, and hands you the shop page. If the comments
+    say nothing, you can search by photo instead.</p>`},
+   {h:"Why small brands", body:`
+    <p>Plenty of tools will tell you a jacket is from Zara. Far fewer know the
+    two-person label in Antwerp that made the scarf, and that label is usually
+    the reason you stopped scrolling.</p>
+    <p>The database leans deliberately toward small Instagram brands: ${BRAND_COUNT} of
+    them so far, ${ITEM_COUNT} pieces, most of which no shopping engine indexes.</p>`},
+   {h:"How it actually works", body:`
+    <ul>
+      <li><strong>Comments first.</strong> Creators answer questions under their
+      own videos. We follow reply threads, so a bare "Acne" three levels deep
+      still gets matched to the person who asked about the scarf.</li>
+      <li><strong>Then the picture.</strong> No answer in the comments? A reverse
+      image search looks for the same garment across the web.</li>
+      <li><strong>Then people.</strong> Anything the machine misses, the community
+      can identify. Confirmed IDs earn free look-ups.</li>
+    </ul>`},
+   {h:"Being straight with you", body:`
+    <p>This is a prototype built by one person. Guesses are sometimes wrong.
+    Some brands have no products listed yet. Some links go to a shop's front
+    page instead of the exact item, because that is genuinely all we found.</p>
+    <p>Where we are not sure, the app says so rather than inventing a link.</p>`}
+  ]},
+  brands:{title:"For brands", blocks:[
+   {h:"Getting listed costs nothing", body:`
+    <p>If people are wearing your pieces in videos, someone is already trying to
+    find you. Being in the database means they land on your shop instead of
+    giving up or buying a fake.</p>
+    <p>There is no fee for a normal listing and no exclusivity. Write to us with
+    your shop link and we will add you.</p>`},
+   {h:"What we pull in", body:`
+    <ul>
+      <li>Brand name, country, and the kind of thing you make</li>
+      <li>Product names, photos and prices, straight from your own shop</li>
+      <li>A link that goes to your store &mdash; never to a reseller</li>
+    </ul>
+    <p>Prices and stock are read from your site, so they follow whatever you
+    change there. If something looks wrong, tell us and we will fix it.</p>`},
+   {h:"Paid placement", body:`
+    <p>The front page has a small Featured row. That spot is paid, always
+    labelled, and never mixed into ordinary search results &mdash; what people find
+    by searching stays honest.</p>
+    <p>Ask for current rates. We would rather have five brands that fit the site
+    than fifty that do not.</p>`},
+   {h:"Affiliate links", body:`
+    <p>If you run an affiliate programme we are happy to use it, and if you do
+    not, the links still work exactly the same. It never changes the price a
+    shopper pays, and it never affects whether you appear in results.</p>`}
+  ]},
+  contact:{title:"Contact", blocks:[
+   {h:"Write to us", body:`
+    <p>One person reads everything, so a reply usually takes a day or two.</p>
+    <p><strong>${CONTACT}</strong></p>`},
+   {h:"What to send", body:`
+    <ul>
+      <li><strong>A brand to add</strong> &mdash; the shop link is enough.</li>
+      <li><strong>Something wrong</strong> &mdash; a mislabelled piece, a dead link, a
+      product that is not what the photo shows. Paste the link and we will fix it.</li>
+      <li><strong>Featured placement</strong> &mdash; say which week you are aiming for.</li>
+      <li><strong>Your data</strong> &mdash; ask for a copy or ask us to delete your
+      account, and we will do it.</li>
+      <li><strong>Takedown</strong> &mdash; if a photo of yours is here and you would
+      rather it were not, say so and it goes.</li>
+    </ul>`}
+  ]}
+ },
+ pl:{
+  about:{title:"O The Plug", blocks:[
+   {h:"Co to jest", body:`
+    <p>Widzisz kurtkę na piętnastosekundowym filmiku. W komentarzach czterysta
+    osób pyta o to samo i nikt nie odpowiada. To cały problem &mdash; i cała ta
+    aplikacja.</p>
+    <p>Wklejasz link. The Plug czyta publiczne komentarze pod spodem, ustala,
+    która marka zrobiła którą rzecz, i podaje stronę sklepu. Jeśli w komentarzach
+    nic nie ma, możesz szukać po zdjęciu.</p>`},
+   {h:"Dlaczego małe marki", body:`
+    <p>Sporo narzędzi powie Ci, że kurtka jest z Zary. Znacznie mniej wie o
+    dwuosobowej marce z Antwerpii, która zrobiła ten szalik &mdash; a to zwykle przez
+    niego przestałeś scrollować.</p>
+    <p>Baza celowo przechyla się w stronę małych marek z Instagrama: na razie
+    ${BRAND_COUNT} marek i ${ITEM_COUNT} rzeczy, w większości nieindeksowanych przez żadną
+    porównywarkę.</p>`},
+   {h:"Jak to działa naprawdę", body:`
+    <ul>
+      <li><strong>Najpierw komentarze.</strong> Twórcy odpowiadają pod własnymi
+      filmami. Śledzimy wątki odpowiedzi, więc samotne „Acne” trzy poziomy niżej
+      trafia do osoby, która pytała o szalik.</li>
+      <li><strong>Potem obraz.</strong> Brak odpowiedzi w komentarzach? Wyszukiwanie
+      wsteczne szuka tej samej rzeczy w całym internecie.</li>
+      <li><strong>Na końcu ludzie.</strong> Czego nie złapie maszyna, rozpozna
+      społeczność. Potwierdzone identyfikacje dają darmowe wyszukiwania.</li>
+    </ul>`},
+   {h:"Uczciwie", body:`
+    <p>To prototyp zrobiony przez jedną osobę. Czasem zgadujemy źle. Część marek
+    nie ma jeszcze wypisanych produktów. Część linków prowadzi na stronę główną
+    sklepu zamiast do konkretnej rzeczy, bo tyle naprawdę udało się znaleźć.</p>
+    <p>Tam, gdzie nie jesteśmy pewni, aplikacja to mówi, zamiast wymyślać link.</p>`}
+  ]},
+  brands:{title:"Dla marek", blocks:[
+   {h:"Wpis nic nie kosztuje", body:`
+    <p>Jeśli ktoś nosi Wasze rzeczy na filmach, ktoś inny już teraz próbuje Was
+    znaleźć. Obecność w bazie znaczy, że trafi do Waszego sklepu, zamiast
+    odpuścić albo kupić podróbkę.</p>
+    <p>Za zwykły wpis nie pobieramy opłat i niczego nie żądamy na wyłączność.
+    Napiszcie z linkiem do sklepu, a dodamy Was.</p>`},
+   {h:"Co zaciągamy", body:`
+    <ul>
+      <li>Nazwę marki, kraj i rodzaj rzeczy, które robicie</li>
+      <li>Nazwy produktów, zdjęcia i ceny &mdash; prosto z Waszego sklepu</li>
+      <li>Link prowadzący do Was, nigdy do resellera</li>
+    </ul>
+    <p>Ceny i dostępność czytamy z Waszej strony, więc idą za tym, co tam
+    zmieniacie. Jeśli coś wygląda źle, napiszcie &mdash; poprawimy.</p>`},
+   {h:"Płatne miejsce", body:`
+    <p>Na stronie głównej jest niewielki rząd „Polecane”. To miejsce jest płatne,
+    zawsze oznaczone i nigdy nie miesza się ze zwykłymi wynikami wyszukiwania &mdash;
+    to, co ludzie znajdują sami, zostaje uczciwe.</p>
+    <p>Zapytajcie o aktualne stawki. Wolimy pięć marek, które pasują do tego
+    miejsca, niż pięćdziesiąt, które nie pasują.</p>`},
+   {h:"Linki afiliacyjne", body:`
+    <p>Jeśli macie program partnerski, chętnie z niego skorzystamy, a jeśli nie
+    macie &mdash; linki działają dokładnie tak samo. Nigdy nie zmienia to ceny, którą
+    płaci kupujący, i nigdy nie wpływa na to, czy pojawiacie się w wynikach.</p>`}
+  ]},
+  contact:{title:"Kontakt", blocks:[
+   {h:"Napisz do nas", body:`
+    <p>Wszystko czyta jedna osoba, więc odpowiedź zajmuje zwykle dzień albo dwa.</p>
+    <p><strong>${CONTACT}</strong></p>`},
+   {h:"Z czym pisać", body:`
+    <ul>
+      <li><strong>Marka do dodania</strong> &mdash; wystarczy link do sklepu.</li>
+      <li><strong>Coś się nie zgadza</strong> &mdash; źle przypisana rzecz, martwy link,
+      produkt inny niż na zdjęciu. Wklej link, poprawimy.</li>
+      <li><strong>Miejsce w Polecanych</strong> &mdash; napiszcie, o który tydzień chodzi.</li>
+      <li><strong>Twoje dane</strong> &mdash; poproś o kopię albo o usunięcie konta, zrobimy to.</li>
+      <li><strong>Zdjęcie do zdjęcia</strong> &mdash; jeśli Twoja fotografia tu jest, a
+      wolisz żeby jej nie było, napisz i znika.</li>
+    </ul>`}
+  ]}
+ }
+};
+
+function renderDoc(key){
+  const set = (DOCS[lang] || DOCS.en)[key] || DOCS.en[key];
+  showOnly(["legalPage"]);
+  document.getElementById("legalTitle").textContent = set.title;
+  document.getElementById("legalUpdated").textContent = "";
+  document.getElementById("legalNav").innerHTML = "";
+  document.getElementById("legalBody").innerHTML =
+    set.blocks.map(b=>`<section><h2>${b.h}</h2>${b.body}</section>`).join("");
+  window.scrollTo(0,0);
+}
 
 function renderLegal(anchor){
   showOnly(["legalPage"]);
@@ -3077,10 +3248,18 @@ function route(){
   if(p==="/faq"){ showOnly(["faq"]); window.scrollTo(0,0); return; }
   if(p==="/admin"){ renderAdmin(); return; }
   if(p==="/legal"){ renderLegal(location.hash.slice(1)); return; }
+  if(p==="/about"||p==="/brands"||p==="/contact"){ renderDoc(p.slice(1)); return; }
   // landing
   showOnly(["heroSection","tiltSection","vibesSection","featuredSection","feedSection","community","faq"]);
   feedOpen=false; feedShown=PAGE; render();
   document.getElementById("feedTitle").textContent=t("feed.title");
+  // footer links like /#vibeRow land here: the sections were just un-hidden,
+  // so wait a tick before jumping to the one that was asked for
+  const want=location.hash.slice(1);
+  if(want){
+    setTimeout(()=>{const el=document.getElementById(want);
+      if(el) el.scrollIntoView({behavior:"instant",block:"start"});},0);
+  }
 }
 
 async function renderAdmin(){
