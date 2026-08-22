@@ -75,12 +75,8 @@ BODY = """
 <div class="idx" style="left:1168px;top:1216px;color:#5c616b">02</div>
 <div class="idx" style="left:2248px;top:1216px">03</div>
 
-<div class="cap" style="left:88px;top:210px">
-  <b>{b1}</b><br>{n1}<br><i>{p1}</i>
-</div>
-<div class="cap" style="right:96px;top:210px;text-align:right">
-  <b>{b2}</b><br>{n2}<br><i>{p2}</i>
-</div>
+<div class="cap" style="left:88px;top:210px"><b>548 BRANDS</b><br>2,350 PIECES<br><i>ONE SEARCH</i></div>
+<div class="cap" style="right:96px;top:210px;text-align:right"><b>TIKTOK</b><br>INSTAGRAM<br><i>ANY REEL</i></div>
 
 <div class="bar" style="left:1620px;top:1176px;transform:translateX(-50%)">COMING SOON</div>
 
@@ -100,12 +96,8 @@ doc = ('<!doctype html><html><head><meta charset="utf-8">\n'
        '<link href="https://fonts.googleapis.com/css2?family=Anton&family=Epilogue:wght@400;500;600;700;800'
        '&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">\n'
        '<style>' + CSS + '</style></head><body>' +
-       BODY.format(cells=cells,
-                   b1=html.escape(caps[0]["brand"]), n1=html.escape(caps[0]["name"][:30]),
-                   p1=html.escape(caps[0]["price"]),
-                   b2=html.escape(caps[1]["brand"]), n2=html.escape(caps[1]["name"][:30]),
-                   p2=html.escape(caps[1]["price"])) +
+       BODY.format(cells=cells) +
        '</body></html>\n')
 
 io.open(SP + r"\ig_advanced.html", "w", encoding="utf-8", newline="\n").write(doc)
-print("rebuilt with", len(picks), "pieces;", caps[0]["price"], caps[1]["price"])
+print("rebuilt, no names or prices, pieces:", len(picks))
