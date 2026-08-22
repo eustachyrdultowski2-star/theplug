@@ -41,10 +41,40 @@ _brands = None
 
 
 def brands():
+    """Every brand we know, with whatever products we hold for it.
+
+    brands_full.json is the scraping working file and stays out of git, so on
+    the server it simply is not there. The site ships the same catalogue as
+    assets/js/catalog.js, which is committed — read that instead rather than
+    answering "no idea" to every lookup in production.
+    """
     global _brands
-    if _brands is None:
-        with open(os.path.join(HERE, "brands_full.json"), encoding="utf-8") as f:
+    if _brands is not None:
+        return _brands
+
+    full = os.path.join(HERE, "brands_full.json")
+    if os.path.exists(full):
+        with open(full, encoding="utf-8") as f:
             _brands = json.load(f)
+        return _brands
+
+    js = open(os.path.join(HERE, "assets", "js", "catalog.js"), encoding="utf-8").read()
+    rows = json.loads(re.search(r"^const BRANDS=(.*);$", js, re.M).group(1))
+    catalog = json.loads(re.search(r"^const CATALOG=(.*);$", js, re.M).group(1))
+
+    by_brand = {}
+    for it in catalog:
+        by_brand.setdefault(it.get("brand"), []).append({
+            "title": it.get("name"),
+            "type": it.get("cat") or "",
+            "price": it.get("price"),          # already carries its currency here
+            "image": it.get("photo"),
+            "url": it.get("link"),
+            "kind": it.get("kind") or "clothing",
+        })
+    for b in rows:
+        b["products"] = [p for p in by_brand.get(b.get("brand"), []) if p.get("url")]
+    _brands = rows
     return _brands
 
 
@@ -212,10 +242,12 @@ def find(brand_name, garment):
 
     ccy = CCY_BY_COUNTRY.get((row or {}).get("country"), "$")
     price = best.get("price")
+    if price and str(price)[0].isdigit():
+        price = ccy + str(price)                      # raw shop numbers need one
     return {
         "brand": (row or {}).get("brand") or brand_name,
         "name": best.get("title"),
-        "price": (ccy + str(price)) if price else None,
+        "price": str(price) if price else None,
         "image": best.get("image"),
         "url": best.get("url"),
         "site": site,
