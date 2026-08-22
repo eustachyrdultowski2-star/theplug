@@ -377,6 +377,8 @@ main{padding:34px 0 90px}
 
 .feed-more{display:flex;flex-direction:column;align-items:center;gap:8px;padding:26px 0 4px}
 .feed-more:empty{display:none}
+.empty-note{grid-column:1/-1;text-align:center;padding:46px 20px;color:var(--muted)}
+.empty-note p{margin:0 0 18px;font-size:15px;max-width:44ch;margin-inline:auto}
 .feed-count{font-size:12px;color:var(--faint);font-variant-numeric:tabular-nums}
 
 /* ---------- fan carousel (ported from card-fan-carousel) ----------
@@ -1177,6 +1179,9 @@ const I18N = {
     "stat.brands":"brands — 70% indie",
     "stat.pending":"finds waiting to be ID'd",
     "feed.title":"The feed",
+    "empty.none":"Nothing matches that. Try another filter.",
+    "empty.saved":"Nothing saved yet. Tap the heart on a piece and it waits for you here.",
+    "empty.browse":"Browse the feed",
     "watch.on":"Notify me","watch.off":"Watching","watch.added":"We'll ping you on a restock or price drop","watch.removed":"Stopped watching",
     "alerts.title":"Your alerts","alerts.none":"No alerts yet. Follow a piece and we'll tell you when it drops in price or comes back.","alerts.price":"price drop","alerts.restock":"back in stock","alerts.watching":"watching {n} pieces","alerts.nav":"Alerts",
     "board.title":"Top spotters","board.sub":"Confirmed IDs this season. Every correct answer counts.","board.you":"you","board.ids":"IDs","board.pts":"pts","board.rank":"#",
@@ -1276,6 +1281,9 @@ const I18N = {
     "stat.brands":"marek — 70% to małe brandy",
     "stat.pending":"znalezisk czeka na rozpoznanie",
     "feed.title":"Feed",
+    "empty.none":"Nic nie pasuje. Spróbuj innego filtra.",
+    "empty.saved":"Nic jeszcze nie zapisane. Kliknij serce przy rzeczy, a poczeka tu na Ciebie.",
+    "empty.browse":"Przeglądaj feed",
     "watch.on":"Powiadom mnie","watch.off":"Obserwujesz","watch.added":"Damy znać, gdy wróci albo stanieje","watch.removed":"Przestajesz obserwować",
     "alerts.title":"Twoje alerty","alerts.none":"Brak alertów. Zaobserwuj rzecz, a damy znać gdy stanieje albo wróci na stan.","alerts.price":"spadek ceny","alerts.restock":"wróciło na stan","alerts.watching":"obserwujesz {n} rzeczy","alerts.nav":"Alerty",
     "board.title":"Najlepsi łowcy","board.sub":"Potwierdzone rozpoznania w tym sezonie. Każda trafna odpowiedź się liczy.","board.you":"ty","board.ids":"rozpoznań","board.pts":"pkt","board.rank":"#",
@@ -1574,6 +1582,19 @@ function brandCardHTML(b){
     </div></a>`;
 }
 
+/* An empty grid should say which kind of empty it is: an over-tight filter
+   and an untouched Saved list are not the same problem, and the second one
+   needs a way back. */
+function emptyStateHTML(){
+  if(savedOnly){
+    return `<div class="empty-note">
+      <p>${t("empty.saved")}</p>
+      <button class="btn btn-ghost" onclick="DOCK_APPS.find(a=>a.id==='feed').act()">${t("empty.browse")}</button>
+    </div>`;
+  }
+  return `<div class="empty-note"><p>${t("empty.none")}</p></div>`;
+}
+
 function render(){
   const grid=document.getElementById("grid");
   const searching = !!(query || filterStyle || filterCat || savedOnly);
@@ -1597,7 +1618,7 @@ function render(){
       .slice(0,24).map(brandCardHTML).join("");
   }
   grid.innerHTML = brandCards + (list.map(cardHTML).join("") ||
-    (brandCards?"":`<p style="color:var(--faint)">Nothing here — try another filter.</p>`));
+    (brandCards?"":emptyStateHTML()));
 
   // "open the feed" / "load more" / "collapse" control under the grid
   const more=document.getElementById("feedMore");
@@ -2554,9 +2575,11 @@ const DOCK_APPS=[
   {id:"search", i18n:"dock.search", act:()=>{window.scrollTo({top:0,behavior:"smooth"});setTimeout(()=>document.getElementById("heroSearch")?.focus(),450);}},
   {id:"photo",  i18n:"dock.photo",  act:()=>{renderPhotoSearch();openOverlay("submitOverlay");}},
   {id:"feed",   i18n:"dock.feed",   act:()=>{query="";filterStyle=null;filterCat=null;filterMode="all";
+      savedOnly=false;                    // coming back from Saved must show everything again
       document.getElementById("navSearch").value="";
       feedOpen=true; feedShown=PAGE;                    // the dock opens the full feed
       renderFilters();renderVibes();render();
+      document.getElementById("feedTitle").textContent=t("feed.title");
       document.getElementById("grid").scrollIntoView({behavior:"smooth",block:"start"});}},
   {id:"vibes",  i18n:"dock.vibes",  act:()=>{document.getElementById("vibeRow").scrollIntoView({behavior:"smooth",block:"center"});}},
   {id:"id",     i18n:"dock.id",     accent:3, act:()=>{document.getElementById("community").scrollIntoView({behavior:"smooth",block:"start"});}},
