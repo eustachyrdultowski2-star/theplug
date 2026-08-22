@@ -1,0 +1,5 @@
+# the shell changes on every build, so never let a stale copy stick around
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+/sw.js
+  Cache-Control: public, max-age=0, must-revalidate

@@ -11,7 +11,7 @@ SITE = os.environ.get("PLUG_SITE", "https://theplug.co").rstrip("/")   # the rea
 BEACON = os.environ.get("PLUG_ANALYTICS", "")   # Cloudflare Web Analytics token
 
 FILES = ["index.html", "manifest.webmanifest", "sw.js"]
-DIRS  = ["assets"]
+DIRS  = ["assets", "functions"]   # functions/ is how Cloudflare Pages proxies /api
 
 if os.path.isdir(DIST):
     shutil.rmtree(DIST)
@@ -41,6 +41,11 @@ if API:
     rules.append(f"/api/*  {API.rstrip('/')}/api/:splat  200")
 rules.append("/*      /index.html                  200")
 open(os.path.join(DIST, "_redirects"), "w").write("\n".join(rules) + "\n")
+
+# Cloudflare Pages will not proxy to an external address from _redirects, so it
+# reads functions/api/[[path]].js instead (copied in above). Netlify reads the
+# rule. Both ship every time and each host uses the half it understands.
+shutil.copy2(os.path.join(HERE, "_headers"), DIST)
 
 # Search engines get a map of every public route. Brand pages are the whole
 # point of the catalog being public, so all of them go in.
