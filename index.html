@@ -2562,7 +2562,10 @@ const DOCK_APPS=[
   {id:"id",     i18n:"dock.id",     accent:3, act:()=>{document.getElementById("community").scrollIntoView({behavior:"smooth",block:"start"});}},
   {id:"saved",  i18n:"dock.saved",  act:()=>showSaved()},
   {id:"plus",   i18n:"dock.plus",   accent:2, act:()=>{renderPlus();openOverlay("plusOverlay");}},
-  {id:"account",i18n:"dock.account",act:()=>{renderAuth("signin");openOverlay("authOverlay");}}
+  // signed in already? show the account, the way the header button does
+  {id:"account",i18n:"dock.account",act:()=>{
+      if(ME){ openAccountMenu(); return; }
+      renderAuth("signin"); openOverlay("authOverlay");}}
 ];
 const dockOpen=new Set(["feed"]);
 
