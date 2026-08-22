@@ -3057,7 +3057,9 @@ function renderLegal(anchor){
   // so wait for layout to settle before jumping to the anchor
   const target = anchor && document.getElementById(anchor);
   if(!target){ window.scrollTo(0,0); return; }
-  setTimeout(()=>target.scrollIntoView(),0);
+  // instant, not smooth: arriving from a footer link should land on the
+  // section, not animate the reader down the whole page
+  setTimeout(()=>target.scrollIntoView({behavior:"instant",block:"start"}),0);
 }
 
 function route(){
