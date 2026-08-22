@@ -2,4 +2,8 @@
 # Pillow is only used by shrink_photos.py, which never runs on the server.
 # psycopg is only imported when DATABASE_URL is set (Render -> Neon Postgres);
 # with no DATABASE_URL the store falls back to JSON files and this is unused.
-psycopg[binary]==3.2.9
+#
+# Not pinned to an exact version on purpose: Render builds on whatever Python
+# it defaults to, and an exact pin means no prebuilt wheel exists the moment
+# that default moves on. 3.2.9 had none for Python 3.14 and every deploy died.
+psycopg[binary]>=3.2.10,<4
