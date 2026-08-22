@@ -3053,8 +3053,11 @@ function renderLegal(anchor){
     rows.map(r=>`<a href="#${r.id}">${r.h}</a>`).join("");
   document.getElementById("legalBody").innerHTML =
     rows.map(r=>`<section id="${r.id}"><h2>${r.h}</h2>${r.body}</section>`).join("");
+  // the section was inserted a moment ago and the page has just been shown,
+  // so wait for layout to settle before jumping to the anchor
   const target = anchor && document.getElementById(anchor);
-  if(target) target.scrollIntoView(); else window.scrollTo(0,0);
+  if(!target){ window.scrollTo(0,0); return; }
+  requestAnimationFrame(()=>requestAnimationFrame(()=>target.scrollIntoView()));
 }
 
 function route(){
