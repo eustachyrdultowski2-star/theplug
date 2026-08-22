@@ -8,6 +8,8 @@ services:
     envVars:
       - key: APIFY_TOKEN
         sync: false          # paste it in the Render dashboard, never in git
+      - key: DATABASE_URL
+        sync: false          # Neon Postgres connection string, dashboard only
       - key: APIFY_ACTOR
         value: clockworks~tiktok-comments-scraper
       - key: PYTHON_VERSION

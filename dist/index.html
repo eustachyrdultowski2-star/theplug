@@ -12,9 +12,19 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="The Plug" />
+<link rel="canonical" href="https://theplug.co/" />
 <meta property="og:title" content="The Plug — find the fit" />
 <meta property="og:description" content="Paste a TikTok, get every brand in the fit." />
 <meta property="og:type" content="website" />
+<meta property="og:site_name" content="The Plug" />
+<meta property="og:url" content="https://theplug.co/" />
+<meta property="og:image" content="https://theplug.co/assets/og.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="The Plug — find the fit" />
+<meta name="twitter:description" content="Paste a TikTok, get every brand in the fit." />
+<meta name="twitter:image" content="https://theplug.co/assets/og.png" />
 <title>The Plug — find the fit</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2963,6 +2973,9 @@ async function renderAdmin(){
       </div>`).join("")}</div>
 
     <p class="spot-hint" style="margin-top:26px">Traffic numbers live in your analytics provider, not here.</p>
+    <p class="spot-hint" style="margin-top:6px">Storage: <strong>${esc(d.storage||"json-files")}</strong>${
+      d.storage==="postgres" ? " — accounts survive every deploy."
+                             : " — WARNING: this disk is wiped on every restart."}</p>
   </div>`;
 }
 

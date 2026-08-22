@@ -1,2 +1,5 @@
 # The API itself needs nothing outside the standard library.
 # Pillow is only used by shrink_photos.py, which never runs on the server.
+# psycopg is only imported when DATABASE_URL is set (Render -> Neon Postgres);
+# with no DATABASE_URL the store falls back to JSON files and this is unused.
+psycopg[binary]==3.2.9

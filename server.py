@@ -45,6 +45,7 @@ def admin_stats():
         "spotters":    sorted(board, key=lambda r: -r.get("points", 0))[:10],
         "recent":      [{"email": u["email"], "created": u.get("created")}
                         for u in sorted(users, key=lambda u: -u.get("created", 0))[:10]],
+        "storage":     store.BACKEND,   # "postgres" = accounts survive a deploy
     }
 
 
