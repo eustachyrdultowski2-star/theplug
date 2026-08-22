@@ -378,6 +378,20 @@ main{padding:34px 0 90px}
 .feed-more{display:flex;flex-direction:column;align-items:center;gap:8px;padding:26px 0 4px}
 .feed-more:empty{display:none}
 .empty-note{grid-column:1/-1;text-align:center;padding:46px 20px;color:var(--muted)}
+.rank-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;
+  font-size:12px;font-weight:600;letter-spacing:.01em;color:var(--rank);
+  background:color-mix(in srgb,var(--rank) 14%,transparent);
+  border:1px solid color-mix(in srgb,var(--rank) 34%,transparent)}
+.rank-badge.sm{padding:2px 8px;font-size:11px;gap:5px}
+.rank-dot{width:6px;height:6px;border-radius:50%;background:var(--rank);flex:none}
+.rank-block{margin-top:18px;padding:14px;border:1px solid var(--border);border-radius:14px;
+  background:var(--surface)}
+.rank-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.rank-label{font-size:12px;color:var(--faint);text-transform:uppercase;letter-spacing:.08em}
+.rank-bar{height:6px;border-radius:999px;background:var(--border);overflow:hidden}
+.rank-bar i{display:block;height:100%;border-radius:999px;transition:width .5s var(--ease)}
+.rank-foot{display:flex;justify-content:space-between;gap:10px;margin-top:9px;
+  font-size:11.5px;color:var(--faint);flex-wrap:wrap}
 .acct-danger{width:100%;padding:12px;margin-top:10px;border-radius:12px;cursor:pointer;
   background:none;border:1px solid transparent;color:#e5484d;font:inherit;font-size:13px;
   transition:border-color .2s,background .2s}
@@ -1190,6 +1204,15 @@ const I18N = {
     "stat.pending":"finds waiting to be ID'd",
     "feed.title":"The feed",
     "empty.none":"Nothing matches that. Try another filter.",
+    "rank.title":"Ranks",
+    "rank.sub":"Every confirmed ID moves you up. Ranks are earned, never bought.",
+    "rank.you":"Your rank",
+    "rank.next":"{n} pts to {r}",
+    "rank.top":"Top rank reached",
+    "rank.ids":"{n} confirmed",
+    "rank.signin":"Sign in to start earning",
+    "rank.0":"Rookie","rank.1":"Spotter","rank.2":"Scout",
+    "rank.3":"Curator","rank.4":"Plug","rank.5":"Legend",
     "acct.delete":"Delete account",
     "acct.delete_sure":"This removes your account, your saved pieces and every session. It cannot be undone.",
     "acct.delete_go":"Yes, delete it",
@@ -1297,6 +1320,15 @@ const I18N = {
     "stat.pending":"znalezisk czeka na rozpoznanie",
     "feed.title":"Feed",
     "empty.none":"Nic nie pasuje. Spróbuj innego filtra.",
+    "rank.title":"Rangi",
+    "rank.sub":"Każda potwierdzona identyfikacja pcha Cię w górę. Rang się nie kupuje.",
+    "rank.you":"Twoja ranga",
+    "rank.next":"{n} pkt do rangi {r}",
+    "rank.top":"Najwyższa ranga osiągnięta",
+    "rank.ids":"{n} potwierdzonych",
+    "rank.signin":"Zaloguj się, żeby zbierać punkty",
+    "rank.0":"Nowy","rank.1":"Tropiciel","rank.2":"Zwiadowca",
+    "rank.3":"Kurator","rank.4":"Plug","rank.5":"Legenda",
     "acct.delete":"Usuń konto",
     "acct.delete_sure":"Usuwamy konto, zapisane rzeczy i wszystkie sesje. Tego nie da się cofnąć.",
     "acct.delete_go":"Tak, usuń",
@@ -1946,8 +1978,16 @@ function submitId(item,named,row){
     </div>`;
   toast(capped ? t("id.capped_toast") : t("id.confirm_toast").replace("{b}",v.label));
   updateRewardHint();
-  fetch("/api/score",{method:"POST",headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({user:"you",points:2})}).then(()=>renderBoard()).catch(()=>{});
+  // points only exist against an account now, so quietly skip when signed out
+  if(ME){
+    fetch("/api/score",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({points:2})})
+      .then(r=>r.ok?r.json():null)
+      .then(d=>{ if(d&&d.you){ SCORE=d.you; paintAccount(); } renderBoard(); })
+      .catch(()=>{});
+  } else {
+    toast(t("rank.signin"));
+  }
   addBrandToDB({brand:v.label,handle:"@"+voteKey(v.label),indie:true});
 }
 
@@ -2400,7 +2440,7 @@ function submitAuth(up){
 }
 
 /* ---------- who is signed in, and what they saved ---------- */
-let ME=null, SAVED=new Set(), GOOGLE_ID=null;
+let ME=null, SAVED=new Set(), GOOGLE_ID=null, SCORE=null;
 
 /* Google renders its own button; we only hand the token to the server. */
 async function mountGoogle(){
@@ -2443,9 +2483,59 @@ async function mountGoogle(){
 
 function loadMe(){
   return fetch("/api/me").then(r=>r.json()).then(d=>{
-    ME=d.user; SAVED=new Set((d.saved||[]).map(String));
+    ME=d.user; SAVED=new Set((d.saved||[]).map(String)); SCORE=d.score||null;
     paintAccount();
   }).catch(()=>{});
+}
+
+/* ---------- ranks ----------------------------------------------------------
+   Six steps, deliberately steep at the top: the first one should arrive on a
+   good evening, the last one should take a season. Points come only from IDs
+   other people confirmed, so a rank cannot be farmed alone. */
+const RANKS = [
+  {i:0, at:0,   hue:"#8b8f9a"},
+  {i:1, at:10,  hue:"#3ba55d"},
+  {i:2, at:30,  hue:"#3a7bff"},
+  {i:3, at:75,  hue:"#9b5cff"},
+  {i:4, at:150, hue:"#ff8a3d"},
+  {i:5, at:300, hue:"#ffd23d"},
+];
+
+function rankOf(points){
+  let r = RANKS[0];
+  for(const step of RANKS) if((points||0) >= step.at) r = step;
+  return r;
+}
+function nextRank(points){
+  return RANKS.find(step => step.at > (points||0)) || null;
+}
+function rankName(r){ return t("rank." + r.i); }
+
+function rankBadge(points, size){
+  const r = rankOf(points);
+  return `<span class="rank-badge${size==="sm"?" sm":""}" style="--rank:${r.hue}">
+    <span class="rank-dot"></span>${rankName(r)}</span>`;
+}
+
+/* the account panel's version: badge, points, and how far to the next step */
+function rankBlockHTML(score){
+  const pts = (score && score.points) || 0;
+  const ids = (score && score.ids) || 0;
+  const r = rankOf(pts), nx = nextRank(pts);
+  const floor = r.at, ceil = nx ? nx.at : r.at;
+  const pct = nx ? Math.round(((pts - floor) / (ceil - floor)) * 100) : 100;
+  return `<div class="rank-block">
+    <div class="rank-head">
+      <span class="rank-label">${t("rank.you")}</span>
+      ${rankBadge(pts)}
+    </div>
+    <div class="rank-bar"><i style="width:${pct}%;background:${r.hue}"></i></div>
+    <div class="rank-foot">
+      <span>${pts} ${t("board.pts")} · ${t("rank.ids").replace("{n}", ids)}</span>
+      <span>${nx ? t("rank.next").replace("{n}", ceil - pts).replace("{r}", rankName(nx))
+                 : t("rank.top")}</span>
+    </div>
+  </div>`;
 }
 
 function paintAccount(){
@@ -2463,6 +2553,7 @@ function openAccountMenu(){
       <p class="desc">${esc(ME.email)}</p>
       <div class="kv"><span>${t("acct.saved")}</span><b>${SAVED.size}</b></div>
       <div class="kv"><span>${t("acct.plan")}</span><b>${ME.plus?"Plug+":t("acct.free")}</b></div>
+      ${rankBlockHTML(SCORE)}
       <button class="btn btn-ghost" style="width:100%;padding:13px;margin-top:16px" id="signOut">${t("acct.signout")}</button>
       <button class="acct-danger" id="killAccount">${t("acct.delete")}</button>
     </div>`;
@@ -2909,10 +3000,12 @@ async function renderBoard(){
   const box=document.getElementById("board"); if(!box) return;
   let rows=[];
   try{ rows=(await (await fetch("/api/leaderboard")).json()).board||[]; }catch(e){}
+  const mine = ME && ME.id;
   box.innerHTML=rows.map((r,i)=>`
     <div class="board-row${r.user==="you"?" me":""}">
       <span class="board-rank">${i+1}</span>
-      <span class="board-user">${esc(r.user)}${r.user==="you"?` · ${t("board.you")}`:""}
+      <span class="board-user">${esc(r.user)}${mine&&r.id===mine?` · ${t("board.you")}`:""}
+        ${rankBadge(r.points,"sm")}
         <span class="board-ids">· ${r.ids||0} ${t("board.ids")}</span></span>
       <span class="board-pts">${r.points} <span style="font-size:11px;opacity:.6">${t("board.pts")}</span></span>
     </div>`).join("");

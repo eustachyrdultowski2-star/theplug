@@ -97,7 +97,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             if name == "/api/me":
                 me = self._me()
                 return self._json(200, {"user": me,
-                                        "saved": auth.saved_ids(me["id"]) if me else []})
+                                        "saved": auth.saved_ids(me["id"]) if me else [],
+                                        "score": auth.score_row(me["id"]) if me else None})
             if name == "/api/alerts":
                 return self._json(200, {"alerts": store.load("alerts", [])[::-1][:40],
                                         "watches": store.load("watches", [])})
@@ -200,16 +201,16 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 return self._json(200, {"ok": True, "count": len(subs)})
 
             if self.path == "/api/score":          # a confirmed ID earns points
-                who = (body.get("user") or "you").strip()[:24]
-                pts = int(body.get("points") or 1)
-                def bump(rows):
-                    for r in rows:
-                        if r["user"].lower() == who.lower():
-                            r["points"] += pts; r["ids"] = r.get("ids", 0) + 1
-                            return rows
-                    rows.append({"user": who, "points": pts, "ids": 1})
-                    return rows
-                return self._json(200, {"board": store.update("leaderboard", [], bump)})
+                me = self._me()
+                if not me:
+                    # points that belong to nobody are worth nothing, and a rank
+                    # has to be attached to an account to mean anything
+                    return self._json(401, {"error": "sign_in_required"})
+                # the client asks for a number; the server decides what it is worth
+                pts = max(1, min(int(body.get("points") or 1), 5))
+                mine = auth.add_score(me["id"], me["name"], pts)
+                return self._json(200, {"you": mine,
+                                        "board": store.load("leaderboard", [])})
 
             if self.path == "/api/image":
                 img = body.get("image") or ""

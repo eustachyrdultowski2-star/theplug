@@ -99,6 +99,31 @@ def close_session(token: str):
     store.update("sessions", [], lambda ss: [s for s in ss if s["token"] != token])
 
 
+# ---------- contribution score ----------
+# Rows are keyed by account id, not by display name: a name can be changed or
+# copied, and the whole point of a rank is that it was earned by one person.
+def score_row(user_id: str):
+    row = next((r for r in store.load("leaderboard", [])
+                if r.get("id") == user_id), None)
+    return {"points": row.get("points", 0), "ids": row.get("ids", 0)} if row \
+        else {"points": 0, "ids": 0}
+
+
+def add_score(user_id: str, name: str, points: int):
+    def bump(rows):
+        for r in rows:
+            if r.get("id") == user_id:
+                r["points"] = r.get("points", 0) + points
+                r["ids"] = r.get("ids", 0) + 1
+                r["user"] = name          # keep the display name current
+                return rows
+        rows.append({"id": user_id, "user": name, "points": points, "ids": 1})
+        return rows
+
+    store.update("leaderboard", [], bump)
+    return score_row(user_id)
+
+
 # ---------- closing an account ----------
 def delete_user(user_id: str) -> bool:
     """Remove the account and everything attached to it.
@@ -125,6 +150,7 @@ def delete_user(user_id: str) -> bool:
         return all_saved
 
     store.update("saved", {}, drop_saved)
+    store.update("leaderboard", [], lambda rs: [r for r in rs if r.get("id") != user_id])
     return True
 
 
