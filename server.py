@@ -10,6 +10,7 @@ import product_lookup
 import hmac, time as _t
 import store
 import auth
+import community
 
 PORT = int(os.environ.get("PORT", 4190))   # hosts assign the port
 DIR = os.path.dirname(os.path.abspath(__file__))
@@ -89,6 +90,7 @@ def admin_stats():
         "recent":      [{"email": u["email"], "created": u.get("created")}
                         for u in sorted(users, key=lambda u: -u.get("created", 0))[:10]],
         "storage":     store.BACKEND,   # "postgres" = accounts survive a deploy
+        "asks":        community.counts(),
     }
 
 
@@ -109,6 +111,17 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def _me(self):
         return auth.session_user(self._token())
 
+    def _admin_ok(self, given=None):
+        """The owner, by shared key. Render's value box is a textarea, so a
+        stray newline is easy — hence the strip."""
+        key = (os.environ.get("ADMIN_KEY") or "").strip()
+        if not key:
+            return False
+        if given is None:
+            q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            given = (q.get("key") or [""])[0]
+        return hmac.compare_digest((given or "").strip(), key)
+
     def _set_cookie(self, token, clear=False):
         attrs = "Path=/; HttpOnly; SameSite=Lax"
         if clear:
@@ -121,17 +134,38 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if self.path.startswith("/api/"):
             name = self.path.split("?")[0]
             if name.startswith("/api/admin/stats"):
-                # Render's value box is a textarea, so a stray newline is easy
-                key = (os.environ.get("ADMIN_KEY") or "").strip()
-                if not key:
-                    return self._json(404, {"error": "admin_disabled"})
-                given = ""
-                if "?" in self.path:
-                    from urllib.parse import parse_qs
-                    given = (parse_qs(self.path.split("?", 1)[1]).get("key") or [""])[0]
-                if not hmac.compare_digest(given.strip(), key):
+                if not self._admin_ok():
                     return self._json(401, {"error": "bad_key"})
                 return self._json(200, admin_stats())
+
+            if name == "/api/asks":
+                return self._json(200, {"asks": community.open_queue(
+                    (self._me() or {}).get("id"))})
+
+            if name == "/api/asks/mine":
+                me = self._me()
+                if not me:
+                    return self._json(401, {"error": "sign_in_required"})
+                return self._json(200, {"asks": community.mine(me["id"])})
+
+            if name == "/api/askphoto":
+                # only ever serves an approved photo; pending ones are visible
+                # in the moderation queue and nowhere else
+                q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+                raw, ctype = community.photo_of((q.get("id") or [""])[0])
+                if not raw:
+                    return self._json(404, {"error": "not_found"})
+                self.send_response(200)
+                self.send_header("Content-Type", ctype)
+                self.send_header("Content-Length", str(len(raw)))
+                self.send_header("Cache-Control", "public, max-age=86400")
+                self.end_headers()
+                return self.wfile.write(raw)
+
+            if name == "/api/admin/asks":
+                if not self._admin_ok():
+                    return self._json(401, {"error": "bad_key"})
+                return self._json(200, {"pending": community.pending()})
 
             if name == "/api/product":
                 # knowing the brand is half an answer; this is the other half —
@@ -192,7 +226,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                              "/api/auth/logout", "/api/save", "/api/auth/google",
                              "/api/auth/delete", "/api/admin/delete",
                              "/api/closet/add", "/api/closet/remove",
-                             "/api/profile", "/api/link"):
+                             "/api/profile", "/api/link",
+                             "/api/ask", "/api/ask/answer", "/api/admin/ask"):
             return self._json(404, {"error": "not found"})
         try:
             n = int(self.headers.get("Content-Length", 0))
@@ -238,6 +273,29 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     return self._json(400, {"error": "no_email"})
                 gone = auth.delete_by_email(email)
                 return self._json(200, {"deleted": gone})
+
+            if self.path == "/api/ask":
+                row, err = community.submit(self._me(), body.get("photo"),
+                                            body.get("note"), body.get("cat"))
+                if err:
+                    return self._json(401 if err == "sign_in_required" else 400,
+                                      {"error": err})
+                return self._json(200, {"ask": row})
+
+            if self.path == "/api/ask/answer":
+                row, err = community.answer(self._me(), body.get("id"), body.get("brand"))
+                if err:
+                    return self._json(401 if err == "sign_in_required" else 400,
+                                      {"error": err})
+                return self._json(200, {"ask": row})
+
+            if self.path == "/api/admin/ask":
+                if not self._admin_ok(body.get("key")):
+                    return self._json(401, {"error": "bad_key"})
+                res, err = community.moderate(body.get("id"), body.get("action"))
+                if err:
+                    return self._json(400, {"error": err})
+                return self._json(200, res)
 
             if self.path == "/api/profile":
                 me = self._me()
