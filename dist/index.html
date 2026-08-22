@@ -3034,6 +3034,12 @@ applyI18n();
 route();
 loadAlerts();
 loadMe();
+/* the API sleeps when idle and takes a while to wake; ask for the config
+   straight away so the Google button is ready by the time anyone opens
+   the sign-in sheet */
+fetch("/api/config").then(r=>r.json())
+  .then(c=>{ GOOGLE_ID=c.googleClientId||""; })
+  .catch(()=>{});
 
 /* installable app: register the worker, and accept links shared into it */
 if("serviceWorker" in navigator){
