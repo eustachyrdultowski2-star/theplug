@@ -1,0 +1,9 @@
+# Netlify only ever publishes the finished site, never builds anything.
+#
+# Keeping its base inside dist/ means it no longer sees requirements.txt at the
+# repo root. That file belongs to Render, which runs the API — but Netlify spots
+# it, tries to install Python packages, and the deploy dies at "Install
+# dependencies" before a single file is copied.
+[build]
+  base    = "dist"
+  publish = "."
