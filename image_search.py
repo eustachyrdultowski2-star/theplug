@@ -13,6 +13,29 @@ LENS_ACTOR = os.environ.get("LENS_ACTOR", "scrape.badger~google-lens-scraper")
 STORE_NAME = "theplug-uploads"
 _store_id = None
 
+# Lens answers a photo of a hoodie with the same wholesale lookalike from a
+# dozen marketplaces, and they crowd out the label that actually made it.
+# The point of The Plug is finding the brand, so these never make the list.
+BLOCKED_HOSTS = (
+    "dhgate", "aliexpress", "alibaba", "1688.com", "taobao", "tmall", "temu",
+    "wish.com", "banggood", "made-in-china", "lightinthebox", "joom",
+    "cjdropshipping", "dhport", "chinabrands", "gearbest", "miniinthebox",
+    "shein", "romwe", "zaful", "yesstyle",
+    # the reps middlemen: same factory, different front door
+    "yupoo", "weidian", "goofish", "pandabuy", "superbuy", "wegobuy", "sugargoo",
+    "cnfans", "kakobuy", "hoobuy", "mulebuy", "oopbuy", "allchinabuy", "itaobuy",
+    "ponybuy", "loongbuy", "basetao", "acbuy",
+)
+
+
+def blocked(source: str, link: str) -> bool:
+    """True for the marketplaces we refuse to point anyone at."""
+    host = urllib.parse.urlparse(link or "").netloc.lower()
+    if host.startswith("www."):
+        host = host[4:]
+    hay = host + " " + (source or "").lower().replace(" ", "")
+    return any(name in hay for name in BLOCKED_HOSTS)
+
 
 def _token():
     tok = os.environ.get("APIFY_TOKEN")
@@ -80,6 +103,8 @@ def lens_search(image_url: str, country="pl", limit=12):
         link = it.get("link") or ""
         source = (it.get("source") or "").strip()
         if not title or not link:
+            continue
+        if blocked(source, link):
             continue
         key = (source.lower(), title.lower()[:40])
         if key in seen:

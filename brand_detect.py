@@ -281,6 +281,9 @@ NOT_BRANDS = {
     "the", "this", "that", "they", "them", "these", "those", "there", "here",
     "from", "same", "similar", "cheap", "some", "any", "idk", "bro", "fire",
     "amazon", "ebay", "depop", "vinted", "temu", "aliexpress", "shein",
+    # marketplaces people name in comments; none of them made the garment
+    "dhgate", "alibaba", "taobao", "tmall", "wish", "banggood", "romwe",
+    "yupoo", "weidian", "pandabuy", "cnfans", "kakobuy", "hoobuy", "mulebuy",
     "thrift", "thrifted", "vintage", "custom", "handmade", "google", "tiktok",
     "loose", "fit", "baggy", "black", "white", "blue", "grey", "gray", "cream",
     "out", "of", "stock", "size", "sizing", "link", "bio", "dm", "comment",
