@@ -1,0 +1,48 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Epilogue:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1080px;height:2160px;background:#050608;font-family:Epilogue,system-ui,sans-serif}
+.tile{position:relative;width:1080px;height:1080px;overflow:hidden;background:#050608}
+
+.sheet{position:absolute;inset:0;display:grid;grid-template-columns:1fr;grid-template-rows:1fr;gap:0}
+.cell{position:relative;overflow:hidden;background:#0a0d12}
+.cell img{width:100%;height:100%;object-fit:cover;object-position:50% 34%;
+          filter:grayscale(1) contrast(1.05) brightness(1.12)}
+.tone{position:absolute;inset:0;z-index:2;
+      background:linear-gradient(120deg,#1b3ea8,#2f6bff 45%,#8fb4ff);
+      mix-blend-mode:color;opacity:.6}
+.dots{position:absolute;inset:0;z-index:3;opacity:.16;mix-blend-mode:multiply;
+      background-image:radial-gradient(circle at center,#050608 1.3px,transparent 1.5px);
+      background-size:7px 7px}
+.cut{position:absolute;inset:0;z-index:4}
+.cut svg{width:100%;height:100%;display:block}
+.ring{position:absolute;inset:0;z-index:6;border-radius:50%;
+      box-shadow:inset 0 0 0 3px rgba(47,107,255,.35)}
+.scan{position:absolute;inset:0;z-index:6;opacity:.12;
+  background:repeating-linear-gradient(180deg,rgba(255,255,255,.06) 0 1px,transparent 1px 5px)}
+.grain{position:absolute;inset:0;z-index:6;opacity:.08;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+/* B: the accent tile — the same letter, punched the other way round */
+.solid{position:absolute;inset:0;background:#2f6bff}
+.foot{position:absolute;left:0;right:0;bottom:96px;z-index:6;text-align:center;
+      font-family:Anton,sans-serif;font-size:44px;letter-spacing:.36em;
+      color:rgba(5,6,8,.75);padding-left:.36em}
+</style></head><body>
+<div class="tile">
+  <div class="sheet "><div class="cell"><img src="https://cdn.shopify.com/s/files/1/0271/9331/1312/files/Mutimer_May_WEB_038.jpg?v=1779058799" alt=""></div></div>
+  <div class="tone"></div>
+  <div class="dots"></div>
+  <div class="cut"><svg viewBox="0 0 1080 1080" xmlns="http://www.w3.org/2000/svg"><defs><mask id="m050608"><rect width="1080" height="1080" fill="#fff"/><text x="540" y="800" text-anchor="middle" font-family="Anton" font-size="900" fill="#000">U</text></mask><filter id="s050608"><feGaussianBlur stdDeviation="14"/></filter></defs><rect width="1080" height="1080" fill="#050608" fill-opacity="0.955" mask="url(#m050608)"/><text x="532" y="800" text-anchor="middle" font-family="Anton" font-size="900" fill="none" stroke="#8fb4ff" stroke-width="4" opacity=".55">U</text><text x="548" y="800" text-anchor="middle" font-family="Anton" font-size="900" fill="none" stroke="#1b3ea8" stroke-width="4" opacity=".55">U</text><text x="540" y="800" text-anchor="middle" font-family="Anton" font-size="900" fill="none" stroke="#2f6bff" stroke-width="6" >U</text><text x="540" y="800" text-anchor="middle" font-family="Anton" font-size="900" fill="none" stroke="#2f6bff" stroke-width="14" opacity=".35" filter="url(#s050608)">U</text></svg></div>
+  <div class="scan"></div><div class="grain"></div><div class="ring"></div>
+</div>
+
+<div class="tile">
+  <div class="solid"></div>
+  <div class="dots"></div>
+  <div class="cut"><svg viewBox="0 0 1080 1080" xmlns="http://www.w3.org/2000/svg"><text x="532" y="800" text-anchor="middle" font-family="Anton" font-size="900" fill="#8fb4ff" opacity=".55">U</text><text x="548" y="800" text-anchor="middle" font-family="Anton" font-size="900" fill="#1b3ea8" opacity=".55">U</text><text x="540" y="800" text-anchor="middle" font-family="Anton" font-size="900" fill="#050608">U</text></svg></div>
+  <div class="foot">THE PLUG</div>
+  <div class="scan"></div><div class="grain"></div>
+</div>
+</body></html>
