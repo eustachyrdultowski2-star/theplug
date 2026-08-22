@@ -123,6 +123,13 @@ font-family:Anton,sans-serif;font-size:26px;letter-spacing:1px;text-transform:up
 .nav-search input{flex:1;background:none;border:none;outline:none;color:var(--fg);font-size:14px}
 .nav-search svg{flex:none;color:var(--faint)}
 .nav-spacer{flex:1}
+.nav-tabs{display:flex;align-items:center;gap:2px}
+.nav-tab{padding:7px 13px;border-radius:999px;font-size:13.5px;color:var(--muted);
+  text-decoration:none;white-space:nowrap;transition:color .18s,background .18s}
+.nav-tab:hover{color:var(--text);background:var(--surface)}
+.nav-tab.on{color:var(--text);background:var(--surface);
+  box-shadow:inset 0 0 0 1px var(--border)}
+@media(max-width:980px){.nav-tabs{display:none}}
 .nav-actions{display:flex;align-items:center;gap:10px}
 .lang{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:999px;overflow:hidden}
 .lang button{padding:7px 12px;font-size:12px;font-weight:700;color:var(--muted)}
@@ -964,6 +971,7 @@ main{padding:34px 0 90px}
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
       <input id="navSearch" type="text" data-i18n-ph="search.ph" />
     </label>
+    <nav class="nav-tabs" id="navTabs"></nav>
     <div class="nav-spacer"></div>
     <div class="nav-actions">
       <div class="lang">
@@ -3000,6 +3008,7 @@ document.querySelectorAll(".lang button").forEach(b=> b.onclick=()=>{
   lang=b.dataset.lang;
   document.querySelectorAll(".lang button").forEach(x=>x.classList.toggle("on",x===b));
   applyI18n();
+  renderTabs();          // the tab labels are translated too
 });
 
 /* ============ reveal on scroll ============ */
@@ -3405,6 +3414,25 @@ function brandBySlug(sl){
 /* The wordmark is the way back: it clears whatever the reader was filtering
    by and puts them at the top, even when they are already on the landing page
    and go() would decline to move. */
+/* The pages existed but only the dock and the footer knew about them, so the
+   site still read as one landing page. These are the same routes, said out
+   loud, with the current one marked. */
+const TABS = [
+  {path:"/feed",    i18n:"d.feed"},
+  {path:"/closet",  i18n:"d.closet"},
+  {path:"/help-id", i18n:"d.id"},
+  {path:"/faq",     i18n:"foot.faq"},
+];
+
+function renderTabs(){
+  const box = document.getElementById("navTabs");
+  if(!box) return;
+  const here = location.pathname.replace(/\/+$/, "") || "/";
+  box.innerHTML = TABS.map(tab =>
+    `<a href="${tab.path}" data-route class="nav-tab${here === tab.path ? " on" : ""}">${t(tab.i18n)}</a>`
+  ).join("");
+}
+
 function goHome(){
   query=""; filterCat=null; filterStyle=null; savedOnly=false; feedOpen=false;
   const nav=document.getElementById("navSearch"); if(nav) nav.value="";
@@ -3745,6 +3773,7 @@ function renderLegal(anchor){
 function route(){
   const p=decodeURIComponent(location.pathname.replace(/\/+$/,"")||"/");
   closeAll();
+  renderTabs();
   if(p.startsWith("/brand/")){ renderBrandPage(p.slice(7)); return; }
   if(p.startsWith("/item/")){  renderItemPage(p.slice(6));  return; }
   if(p==="/feed"){
