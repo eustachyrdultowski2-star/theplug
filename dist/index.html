@@ -370,15 +370,15 @@ main{padding:34px 0 90px}
    its neighbours aside. */
 .fan{position:relative;display:flex;justify-content:center;align-items:center;width:100%;
   height:420px;margin:6px 0 4px;overflow:hidden}
-.fan-card{position:absolute;width:210px;aspect-ratio:3/4;border-radius:18px;overflow:hidden;
+.fan-card{position:absolute;width:210px;border-radius:18px;overflow:hidden;
   background:var(--surface);border:1px solid var(--border);cursor:pointer;
   box-shadow:0 18px 40px -18px rgba(0,0,0,.75);
   transform-origin:bottom center;will-change:transform;
   transition:transform .55s cubic-bezier(.22,1,.36,1), box-shadow .3s, border-color .3s}
 .fan-card:hover{border-color:color-mix(in srgb,var(--accent) 55%,var(--border));
   box-shadow:0 26px 50px -18px color-mix(in srgb,var(--accent) 45%,rgba(0,0,0,.8))}
-.fan-card img{width:100%;height:62%;object-fit:cover;display:block}
-.fan-body{padding:10px 12px}
+.fan-card img{width:100%;aspect-ratio:1/1;object-fit:cover;display:block}
+.fan-body{padding:10px 12px 12px}
 .fan-cat{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--faint)}
 .fan-note{font-size:13px;font-weight:600;color:var(--fg);margin:2px 0 8px;line-height:1.3;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
@@ -1701,8 +1701,10 @@ function fanMult(stage, cardW, cardH){
 }
 function fanSlot(total,slot){
   if(total>=FAN_MAX) return FAN_POS[slot];
-  const c=total>>1, d=total>1?(slot-c)/c:0, a=Math.abs(d);
-  return {rot:d*21, scale:1-.2244*a*a, x:d*30, y:a*a*7.3, z:10-Math.abs(slot-c)};
+  const c=(total-1)/2;                 // half-step centre keeps even counts symmetric
+  const d=c>0?(slot-c)/c:0, a=Math.abs(d);
+  return {rot:d*18, scale:1-.16*a*a, x:d*30, y:a*a*4.2,
+          z:10-Math.round(Math.abs(slot-c))};
 }
 
 function mountFan(box,items,cardHTMLFn,onClick){
@@ -1746,10 +1748,10 @@ function mountFan(box,items,cardHTMLFn,onClick){
       if(slot===undefined){ el.style.opacity="0"; el.style.pointerEvents="none";
         el.style.transform="translate(0,0) scale(.5)"; el.style.zIndex=0; return; }
       const b=fanSlot(count,slot);
-      let x=b.x*mult, y=b.y, rot=b.rot, sc=b.scale;
+      let x=b.x*mult, y=b.y*mult, rot=b.rot, sc=b.scale;
       if(hovered!=null){
         const dist=Math.abs(slot-hovered);
-        if(slot===hovered){ y-=2.5; sc*=1.08; }
+        if(slot===hovered){ y-=2.2*mult; sc*=1.07; }
         else{
           const norm=centerSlot>0?(slot-centerSlot)/centerSlot:0;
           const push=8*(1-Math.abs(norm))*(1+.2*Math.max(0,3-dist));
@@ -3008,5 +3010,6 @@ if("serviceWorker" in navigator){
   }
 })();
 </script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "dcdcb7a2fa674243bc32bb3fdf96a9d2"}'></script>
 </body>
 </html>

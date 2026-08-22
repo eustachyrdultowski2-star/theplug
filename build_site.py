@@ -19,6 +19,9 @@ os.makedirs(DIST)
 for f in FILES:
     shutil.copy2(os.path.join(HERE, f), DIST)
 
+for d in DIRS:
+    shutil.copytree(os.path.join(HERE, d), os.path.join(DIST, d))
+
 # Analytics is added at build time, so nothing is tracked while developing.
 # Cloudflare Web Analytics sets no cookies, which is why it needs no consent
 # banner.
@@ -37,6 +40,14 @@ if API:
     rules.append(f"/api/*  {API.rstrip('/')}/api/:splat  200")
 rules.append("/*      /index.html                  200")
 open(os.path.join(DIST, "_redirects"), "w").write("\n".join(rules) + "\n")
+
+# A half-finished build once shipped without any images. Never again:
+# check the essentials before calling it done.
+missing = [need for need in ("index.html", "assets/js/catalog.js", "assets/icons/icon-512.png")
+           if not os.path.exists(os.path.join(DIST, need))]
+photos = len(os.listdir(os.path.join(DIST, "assets", "photos")))          if os.path.isdir(os.path.join(DIST, "assets", "photos")) else 0
+if missing or photos == 0:
+    raise SystemExit(f"BUILD INCOMPLETE — missing {missing or 'photos'}; dist not usable")
 
 size = sum(os.path.getsize(os.path.join(r, f))
            for r, _, fs in os.walk(DIST) for f in fs)
