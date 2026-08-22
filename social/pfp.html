@@ -1,0 +1,38 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Epilogue:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1080px;height:2160px;background:#000;font-family:Epilogue,system-ui,sans-serif}
+.tile{width:1080px;height:1080px;position:relative;overflow:hidden;display:grid;place-items:center}
+
+/* A — dark, the wordmark stacked, accent U */
+.a{background:#0a0b0d}
+.a .glow{position:absolute;width:1000px;height:1000px;border-radius:50%;top:-42%;right:-30%;
+  background:radial-gradient(circle,rgba(47,107,255,.34) 0%,rgba(47,107,255,0) 62%)}
+.a .stack{position:relative;text-align:center}
+.a .the{font-family:Anton,sans-serif;font-size:78px;letter-spacing:.5em;color:#8f939c;padding-left:.5em}
+.a .word{font-family:Anton,sans-serif;font-size:300px;line-height:.86;color:#f4f5f7;letter-spacing:-.005em}
+.a .word b{color:#2f6bff;font-weight:400}
+
+/* B — the accent tile: one letter, no explanation */
+.b{background:#2f6bff}
+.b .u{font-family:Anton,sans-serif;font-size:820px;line-height:.72;color:#0a0b0d}
+.b .foot{position:absolute;left:0;right:0;bottom:74px;text-align:center;
+  font-family:Anton,sans-serif;font-size:46px;letter-spacing:.34em;color:rgba(10,11,13,.72);padding-left:.34em}
+.grain{position:absolute;inset:0;opacity:.06;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E")}
+</style></head><body>
+<div class="tile a">
+  <div class="glow"></div>
+  <div class="stack">
+    <div class="the">THE</div>
+    <div class="word">PL<b>U</b>G</div>
+  </div>
+  <div class="grain"></div>
+</div>
+<div class="tile b">
+  <div class="u">U</div>
+  <div class="foot">THE PLUG</div>
+  <div class="grain"></div>
+</div>
+</body></html>
