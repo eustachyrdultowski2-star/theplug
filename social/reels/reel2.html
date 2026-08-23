@@ -1,0 +1,229 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Epilogue:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1080px;height:1920px;overflow:hidden;background:#050608;
+     font-family:Epilogue,system-ui,sans-serif;color:#f4f5f7}
+.stage{position:absolute;inset:0;overflow:hidden}
+.scene{position:absolute;inset:0;opacity:0}
+.brandbar{position:absolute;left:64px;right:64px;top:70px;display:flex;justify-content:space-between;
+  align-items:center;font-family:'JetBrains Mono',monospace;font-size:24px;letter-spacing:.22em;
+  color:#7d818b;text-transform:uppercase;z-index:20}
+.brandbar b{font-family:Anton,sans-serif;letter-spacing:.42em;color:#f4f5f7;font-weight:400;font-size:26px}
+.scan{position:absolute;inset:0;z-index:30;opacity:.13;pointer-events:none;
+  background:repeating-linear-gradient(180deg,rgba(255,255,255,.06) 0 1px,transparent 1px 5px)}
+.grain{position:absolute;inset:0;z-index:30;opacity:.08;mix-blend-mode:overlay;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E")}
+.vig{position:absolute;inset:0;z-index:29;pointer-events:none;
+  background:radial-gradient(ellipse 80% 70% at 50% 45%,transparent 50%,rgba(5,6,8,.82))}
+
+.hero{position:absolute;left:80px;right:80px;top:300px;font-family:Anton,sans-serif;
+  font-size:118px;line-height:.96;text-transform:uppercase;letter-spacing:-.01em}
+.hero em{font-style:normal;color:#2f6bff}
+.kicker{position:absolute;left:80px;top:230px;font-family:'JetBrains Mono',monospace;
+  font-size:28px;letter-spacing:.28em;color:#7d818b;text-transform:uppercase}
+
+/* carousel strip */
+.strip{position:absolute;left:0;right:0;top:640px;display:flex;gap:14px;padding:0 40px}
+.strip figure{position:relative;flex:1;height:420px;border-radius:22px;overflow:hidden;
+  background:#0a0d12;border:2px solid transparent}
+.strip img{width:100%;height:100%;object-fit:cover;filter:grayscale(1) brightness(.7)}
+.strip figcaption{position:absolute;left:12px;bottom:12px;font-family:'JetBrains Mono',monospace;
+  font-size:22px;letter-spacing:.16em;color:#c8ccd4;background:rgba(5,6,8,.7);padding:6px 12px;
+  border-radius:8px}
+.strip .on{border-color:#2f6bff}
+.strip .on img{filter:none}
+
+.bubble{position:absolute;left:80px;right:80px;top:1130px;background:#14161c;border:1px solid #23262e;
+  border-radius:26px;padding:32px 36px;font-size:38px;line-height:1.35;color:#c8ccd4}
+.bubble .who{display:block;font-family:'JetBrains Mono',monospace;font-size:23px;
+  letter-spacing:.16em;color:#6d717b;margin-bottom:12px;text-transform:uppercase}
+
+/* answer rows with slide chips */
+.answers{position:absolute;left:70px;right:70px;top:560px;display:flex;flex-direction:column;gap:20px}
+.ans{display:flex;align-items:center;gap:22px;background:#0e1015;border:1px solid #242a35;
+  border-radius:24px;padding:28px 30px}
+.chip{font-family:Anton,sans-serif;font-size:26px;letter-spacing:.14em;color:#050608;background:#2f6bff;
+  padding:10px 18px 7px;border-radius:10px;white-space:nowrap}
+.ans .t{flex:1;min-width:0}
+.ans .c{font-family:'JetBrains Mono',monospace;font-size:22px;letter-spacing:.2em;color:#6d717b;
+  text-transform:uppercase}
+.ans .b{font-family:Anton,sans-serif;font-size:44px;margin-top:6px}
+.ans .p{font-family:Anton,sans-serif;font-size:34px;color:#2f6bff}
+
+/* one big product */
+.big{position:absolute;left:90px;right:90px;top:430px}
+.big img{width:100%;height:860px;object-fit:cover;border-radius:30px;background:#0a0d12}
+.big .meta{margin-top:34px}
+.big .bn{font-family:Anton,sans-serif;font-size:76px;line-height:1}
+.big .pn{font-size:30px;color:#c8ccd4;margin-top:14px;line-height:1.3;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.big .pr{font-family:Anton,sans-serif;font-size:92px;color:#2f6bff;margin-top:22px}
+
+/* price guess */
+.opts{position:absolute;left:90px;right:90px;top:1500px;display:flex;gap:18px}
+.opt{flex:1;text-align:center;background:#0e1015;border:2px solid #242a35;border-radius:22px;
+  padding:28px 10px 24px;font-family:Anton,sans-serif;font-size:52px}
+.opt.hit{border-color:#2f6bff;background:#101c3a;color:#8fb4ff}
+.opt.miss{opacity:.35}
+
+/* brand card */
+.bcard{position:absolute;left:80px;right:80px;top:330px}
+.bcard .nm{font-family:Anton,sans-serif;font-size:132px;line-height:.94;text-transform:uppercase}
+.bcard .sub{font-family:'JetBrains Mono',monospace;font-size:28px;letter-spacing:.2em;color:#8f939c;
+  margin-top:20px;text-transform:uppercase}
+.shelf{position:absolute;left:60px;right:60px;top:700px;display:flex;gap:18px}
+.shelf figure{flex:1;background:#0a0d12;border-radius:22px;overflow:hidden}
+.shelf img{width:100%;height:520px;object-fit:cover}
+.shelf figcaption{padding:18px 16px 22px;font-family:'JetBrains Mono',monospace;font-size:24px;
+  color:#c8ccd4;letter-spacing:.08em}
+.shelf b{display:block;font-family:Anton,sans-serif;font-size:40px;color:#2f6bff;margin-top:10px}
+
+.endbar{position:absolute;left:50%;transform:translateX(-50%);bottom:330px;background:#2f6bff;
+  color:#050608;font-family:Anton,sans-serif;font-size:44px;letter-spacing:.24em;
+  padding:20px 46px 16px;white-space:nowrap}
+.endline{position:absolute;left:0;right:0;bottom:230px;text-align:center;
+  font-family:'JetBrains Mono',monospace;font-size:32px;letter-spacing:.3em;color:#9aa0ab;
+  text-transform:uppercase}
+.plugmark{position:absolute;left:0;right:0;top:0;height:100%}
+</style></head><body>
+<script src="reel_img/images.js"></script>
+<script src="reel_img/brand.js"></script>
+<div class="stage" id="stage"></div>
+<script>
+/* One engine, three stories. Frame N is a pure function of N, so a render can
+   be stopped and resumed and the film does not change. */
+const P = new URLSearchParams(location.search);
+const FPS = +(P.get("fps") || 12);
+const T = (+(P.get("f") || 0)) / FPS;
+const VAR = P.get("v") || "slides";
+const IMGS = window.REEL_IMAGES || [];
+const BRAND = window.REEL_BRAND || null;
+
+const clamp = (v,a,b) => Math.max(a, Math.min(b,v));
+const ease = t => t<0?0:t>1?1:1-Math.pow(1-t,3);
+const span = (t,a,b) => clamp((t-a)/(b-a),0,1);
+const el = (html) => { const d=document.createElement("div"); d.innerHTML=html.trim(); return d.firstChild; };
+
+const stage = document.getElementById("stage");
+function scene(inner, a, b){
+  const s = el('<div class="scene">' + inner + '</div>');
+  const on = T >= a && T < b;
+  s.style.opacity = on ? 1 : 0;
+  s.style.transform = "translateY(" + ((1-ease(span(T,a,a+0.45)))*24) + "px)";
+  stage.appendChild(s);
+  return {on, t: T - a, node: s};
+}
+function mark(){
+  return '<svg class="plugmark" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg">' +
+    '<defs><filter id="g"><feGaussianBlur stdDeviation="26"/></filter></defs>' +
+    '<g filter="url(#g)" opacity="' + (0.35 + 0.5*Math.abs(Math.sin(T*2.2))) + '">' +
+    '<path d="M 390 800 L 390 990 A 150 150 0 0 0 690 990 L 690 800" fill="none" stroke="#2f6bff" stroke-width="132"/>' +
+    '<rect x="347" y="604" width="86" height="150" rx="18" fill="#2f6bff"/>' +
+    '<rect x="647" y="604" width="86" height="150" rx="18" fill="#2f6bff"/></g>' +
+    '<path d="M 390 800 L 390 990 A 150 150 0 0 0 690 990 L 690 800" fill="none" stroke="#8fb4ff" stroke-width="88"/>' +
+    '<rect x="357" y="614" width="66" height="130" rx="16" fill="#eaf1ff"/>' +
+    '<rect x="657" y="614" width="66" height="130" rx="16" fill="#eaf1ff"/></svg>';
+}
+const END = '<div class="endbar">COMING SOON</div><div class="endline">theplugfinds.com</div>';
+
+/* ---------------------------------------------------------- 1. slides ---- */
+if(VAR === "slides"){
+  const shots = IMGS.slice(0,4);
+  const strip = (active) => '<div class="strip">' + shots.map((s,i) =>
+      '<figure class="' + (i===active?"on":"") + '"><img src="reel_img/' + s.file + '">' +
+      '<figcaption>' + (i+1) + '</figcaption></figure>').join("") + '</div>';
+
+  const s1 = scene('<div class="kicker">One TikTok</div>' +
+    '<div class="hero">Four fits.<br>One <em>question</em>.</div>' +
+    strip(-1) +
+    '<div class="bubble"><span class="who">Comment</span>' +
+    '<span id="typed"></span></div>', 0, 3.0);
+  if(s1.on){
+    const line = "the jeans from slide 4?? 🙏";
+    const n = Math.floor(clamp((s1.t-0.7)/1.1,0,1)*line.length);
+    s1.node.querySelector("#typed").textContent = line.slice(0,n);
+    const k = Math.floor(clamp((s1.t-1.9)/0.9,0,1)*4);
+    s1.node.querySelectorAll(".strip figure").forEach((f,i)=>{
+      if(i === 3 && s1.t > 2.2) f.classList.add("on");
+    });
+  }
+
+  const s2 = scene('<div class="kicker">The Plug reads every comment</div>' +
+    '<div class="hero" style="font-size:96px">It knows<br>which <em>slide</em>.</div>' +
+    '<div class="answers" style="top:760px">' +
+    '<div class="ans" data-i="0"><span class="chip">SLIDE 2</span><div class="t">' +
+      '<div class="c">Jacket</div><div class="b">CORTEIZ</div></div><div class="p">81%</div></div>' +
+    '<div class="ans" data-i="1"><span class="chip">SLIDE 4</span><div class="t">' +
+      '<div class="c">Jeans</div><div class="b">REPRESENT</div></div><div class="p">74%</div></div>' +
+    '<div class="ans" data-i="2"><span class="chip">SLIDE 4</span><div class="t">' +
+      '<div class="c">Boots</div><div class="b">MUTIMER</div></div><div class="p">63%</div></div>' +
+    '</div>', 3.0, 7.0);
+  if(s2.on){
+    s2.node.querySelectorAll(".ans").forEach((a,i)=>{
+      const k = ease(span(s2.t, 0.5+i*0.35, 0.95+i*0.35));
+      a.style.opacity = k;
+      a.style.transform = "translateX(" + ((1-k)*40) + "px)";
+    });
+  }
+
+  const s3 = scene(mark() + END, 7.0, 9.0);
+}
+
+/* ----------------------------------------------------------- 2. brand ---- */
+if(VAR === "brand" && BRAND){
+  const s1 = scene('<div class="kicker">Brand of the day</div>' +
+    '<div class="bcard"><div class="nm">' + BRAND.brand + '</div>' +
+    '<div class="sub">' + BRAND.niche + ' · ' + BRAND.country + '</div></div>' +
+    '<div class="shelf">' + BRAND.items.map(i =>
+      '<figure><img src="reel_img/' + i.file + '">' +
+      '<figcaption>' + i.cat + '<b>' + i.price + '</b></figcaption></figure>').join("") +
+    '</div>', 0, 6.4);
+  if(s1.on){
+    s1.node.querySelectorAll(".shelf figure").forEach((f,i)=>{
+      const k = ease(span(s1.t, 0.6+i*0.4, 1.15+i*0.4));
+      f.style.opacity = k;
+      f.style.transform = "translateY(" + ((1-k)*60) + "px)";
+    });
+    s1.node.querySelector(".bcard .sub").style.opacity = ease(span(s1.t,0.35,0.8));
+  }
+
+  const s2 = scene('<div class="kicker">All of it, searchable</div>' +
+    '<div class="hero" style="top:340px">548 brands.<br>2,350 <em>pieces</em>.</div>' +
+    mark() + END, 6.4, 9.6);
+}
+
+/* ----------------------------------------------------------- 3. price ---- */
+if(VAR === "price"){
+  const it = IMGS[1] || IMGS[0];
+  const real = it.price;
+  const fake = ["€39", "€1,200"];
+  const s1 = scene('<div class="kicker">Guess the price</div>' +
+    '<div class="big"><img src="reel_img/' + it.file + '">' +
+    '<div class="meta"><div class="pn" id="pn">' + it.name.slice(0,34) + '</div></div></div>' +
+    '<div class="opts"><div class="opt" id="o0">' + fake[0] + '</div>' +
+    '<div class="opt" id="o1">' + real + '</div>' +
+    '<div class="opt" id="o2">' + fake[1] + '</div></div>', 0, 5.6);
+  if(s1.on && s1.t > 3.4){
+    s1.node.querySelector("#o1").classList.add("hit");
+    s1.node.querySelector("#o0").classList.add("miss");
+    s1.node.querySelector("#o2").classList.add("miss");
+  }
+
+  const s2 = scene('<div class="big" style="top:380px"><img src="reel_img/' + it.file + '" ' +
+    'style="height:760px">' +
+    '<div class="meta"><div class="bn">' + it.brand.toUpperCase() + '</div>' +
+    '<div class="pn">' + it.name.slice(0,40) + '</div>' +
+    '<div class="pr">' + real + '</div></div></div>' +
+    '<div class="endline" style="bottom:180px">found on theplugfinds.com</div>', 5.6, 8.4);
+
+  const s3 = scene(mark() + END, 8.4, 10.0);
+}
+
+/* the bar and the film grain sit above every scene */
+stage.insertAdjacentHTML("beforeend",
+  '<div class="brandbar"><b>THE PLUG</b><span>00:' +
+  String(Math.floor(T)).padStart(2,"0") + '</span></div>' +
+  '<div class="vig"></div><div class="scan"></div><div class="grain"></div>');
+</script>
+</body></html>
