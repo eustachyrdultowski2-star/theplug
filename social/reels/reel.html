@@ -1,0 +1,271 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Epilogue:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1080px;height:1920px;overflow:hidden;background:#050608;
+     font-family:Epilogue,system-ui,sans-serif;color:#f4f5f7}
+.stage{position:absolute;inset:0;overflow:hidden}
+.scene{position:absolute;inset:0;opacity:0}
+
+/* ---------- shared furniture ---------- */
+.brandbar{position:absolute;left:64px;right:64px;top:70px;display:flex;justify-content:space-between;
+  align-items:center;font-family:'JetBrains Mono',monospace;font-size:24px;letter-spacing:.22em;
+  color:#7d818b;text-transform:uppercase;z-index:20}
+.brandbar b{font-family:Anton,sans-serif;letter-spacing:.42em;color:#f4f5f7;font-weight:400;font-size:26px}
+.scan{position:absolute;inset:0;z-index:30;opacity:.13;pointer-events:none;
+  background:repeating-linear-gradient(180deg,rgba(255,255,255,.06) 0 1px,transparent 1px 5px)}
+.grain{position:absolute;inset:0;z-index:30;opacity:.08;mix-blend-mode:overlay;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E")}
+.vig{position:absolute;inset:0;z-index:29;pointer-events:none;
+  background:radial-gradient(ellipse 80% 70% at 50% 45%,transparent 50%,rgba(5,6,8,.8))}
+
+/* ---------- 1. the question ---------- */
+.q-wrap{position:absolute;left:80px;right:80px;top:640px}
+.q-line{font-family:Anton,sans-serif;font-size:126px;line-height:.95;letter-spacing:-.01em;
+  text-transform:uppercase}
+.q-line em{font-style:normal;color:#2f6bff}
+.comment{position:absolute;left:80px;right:80px;top:1080px;background:#14161c;border:1px solid #23262e;
+  border-radius:26px;padding:34px 38px;font-size:38px;line-height:1.35;color:#c8ccd4}
+.comment .who{display:block;font-family:'JetBrains Mono',monospace;font-size:24px;
+  letter-spacing:.16em;color:#6d717b;margin-bottom:14px;text-transform:uppercase}
+.comment .cursor{display:inline-block;width:4px;height:38px;background:#2f6bff;
+  vertical-align:-6px;margin-left:6px}
+.nobody{position:absolute;left:80px;top:1330px;font-family:'JetBrains Mono',monospace;
+  font-size:30px;letter-spacing:.2em;color:#6d717b;text-transform:uppercase}
+
+/* ---------- 2. the app ---------- */
+.app{position:absolute;left:70px;right:70px;top:430px;background:#0e1015;border:1px solid #23262e;
+  border-radius:38px;padding:46px 44px;box-shadow:0 60px 120px -40px rgba(0,0,0,.9)}
+.app-title{font-family:Anton,sans-serif;font-size:46px;letter-spacing:.02em;margin-bottom:10px}
+.app-sub{font-family:'JetBrains Mono',monospace;font-size:24px;letter-spacing:.14em;
+  color:#6d717b;text-transform:uppercase;margin-bottom:34px}
+.field{display:flex;align-items:center;gap:18px;background:#050608;border:1px solid #2a2e37;
+  border-radius:20px;padding:30px 30px;font-family:'JetBrains Mono',monospace;font-size:30px;
+  color:#c8ccd4;overflow:hidden;white-space:nowrap}
+.field .cursor{display:inline-block;width:3px;height:34px;background:#2f6bff;vertical-align:-5px}
+.bar{margin-top:30px;height:12px;border-radius:99px;background:#1b1e25;overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,#1b3ea8,#2f6bff,#8fb4ff)}
+.phase{margin-top:18px;font-family:'JetBrains Mono',monospace;font-size:24px;letter-spacing:.16em;
+  color:#6d717b;text-transform:uppercase}
+
+.rows{margin-top:34px;display:flex;flex-direction:column;gap:16px}
+.row{display:flex;align-items:center;gap:20px;background:#141821;border:1px solid #242a35;
+  border-radius:20px;padding:22px 24px}
+.row .ico{width:64px;height:64px;flex:none;border-radius:16px;background:#050608;display:grid;
+  place-items:center;font-family:'JetBrains Mono',monospace;font-size:22px;color:#2f6bff}
+.row .txt{flex:1;min-width:0}
+.row .cat{font-family:'JetBrains Mono',monospace;font-size:20px;letter-spacing:.2em;color:#6d717b;
+  text-transform:uppercase}
+.row .bd{font-family:Anton,sans-serif;font-size:38px;letter-spacing:.01em;margin-top:4px}
+.row .pc{font-family:Anton,sans-serif;font-size:32px;color:#2f6bff}
+.prod{margin-top:20px;display:flex;align-items:center;gap:22px;background:#050608;
+  border:1px solid #242a35;border-radius:20px;padding:20px 22px}
+.prod img{width:110px;height:140px;object-fit:cover;border-radius:14px;background:#141821}
+.prod .pn{font-size:30px;font-weight:700;line-height:1.25}
+.prod .ps{font-family:'JetBrains Mono',monospace;font-size:24px;color:#7d818b;margin-top:8px;
+  letter-spacing:.1em}
+.prod .go{margin-left:auto;font-size:44px;color:#2f6bff}
+
+/* ---------- 3. the rail ---------- */
+.rail{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,1fr);
+      grid-template-rows:repeat(3,1fr);gap:8px;padding:0}
+.rail div{overflow:hidden;background:#0a0d12}
+.rail img{width:100%;height:100%;object-fit:cover;filter:grayscale(1) contrast(1.1) brightness(1.05)}
+.railtone{position:absolute;inset:0;background:linear-gradient(120deg,#1b3ea8,#2f6bff 50%,#8fb4ff);
+  mix-blend-mode:color;opacity:.6}
+.railmask{position:absolute;inset:0;background:radial-gradient(ellipse 75% 60% at 50% 50%,
+  rgba(5,6,8,.15),rgba(5,6,8,.92) 80%)}
+.counts{position:absolute;left:0;right:0;top:760px;text-align:center;padding:70px 0;
+  background:linear-gradient(180deg,rgba(5,6,8,0),rgba(5,6,8,.82) 16%,rgba(5,6,8,.82) 84%,rgba(5,6,8,0))}
+.counts .n{font-family:Anton,sans-serif;font-size:180px;line-height:.9;letter-spacing:-.01em;
+  text-shadow:0 8px 40px rgba(5,6,8,.9)}
+.counts .l{font-family:'JetBrains Mono',monospace;font-size:30px;letter-spacing:.32em;
+  color:#dfe3ea;text-transform:uppercase;margin-top:14px}
+
+/* ---------- 4. the mark ---------- */
+.end{position:absolute;inset:0;display:grid;place-items:center}
+.end svg{width:1080px;height:1920px;position:absolute;inset:0}
+.endline{position:absolute;left:0;right:0;bottom:250px;text-align:center;
+  font-family:'JetBrains Mono',monospace;font-size:32px;letter-spacing:.3em;color:#9aa0ab;
+  text-transform:uppercase}
+.endbar{position:absolute;left:50%;transform:translateX(-50%);bottom:360px;background:#2f6bff;
+  color:#050608;font-family:Anton,sans-serif;font-size:44px;letter-spacing:.24em;
+  padding:20px 46px 16px;white-space:nowrap}
+</style></head><body>
+
+<div class="stage">
+  <!-- 1 -->
+  <div class="scene" id="s1">
+    <div class="q-wrap">
+      <div class="q-line" id="q1">You saw</div>
+      <div class="q-line" id="q2">the <em>fit</em>.</div>
+    </div>
+    <div class="comment" id="c1"><span class="who">Comment · 412 likes</span><span id="ctext"></span><span class="cursor"></span></div>
+    <div class="nobody" id="nob">— nobody answered</div>
+  </div>
+
+  <!-- 2 -->
+  <div class="scene" id="s2">
+    <div class="app">
+      <div class="app-title">Spot the fit</div>
+      <div class="app-sub">Paste the link</div>
+      <div class="field"><span id="urltext"></span><span class="cursor"></span></div>
+      <div class="bar"><i id="prog" style="width:0%"></i></div>
+      <div class="phase" id="phase">Reading the comments…</div>
+      <div class="rows" id="rows"></div>
+    </div>
+  </div>
+
+  <!-- 3 -->
+  <div class="scene" id="s3">
+    <div class="rail" id="rail"></div>
+    <div class="railtone"></div>
+    <div class="railmask"></div>
+    <div class="counts">
+      <div class="n" id="cnt1">0</div><div class="l">brands</div>
+      <div class="n" id="cnt2" style="font-size:120px;margin-top:40px">0</div><div class="l">pieces</div>
+    </div>
+  </div>
+
+  <!-- 4 -->
+  <div class="scene" id="s4">
+    <div class="end">
+      <svg viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg">
+        <defs><filter id="glow"><feGaussianBlur stdDeviation="26"/></filter></defs>
+        <g id="plugglow" filter="url(#glow)" opacity=".85">
+          <path d="M 390 800 L 390 990 A 150 150 0 0 0 690 990 L 690 800" fill="none" stroke="#2f6bff" stroke-width="132"/>
+          <rect x="347" y="604" width="86" height="150" rx="18" fill="#2f6bff"/>
+          <rect x="647" y="604" width="86" height="150" rx="18" fill="#2f6bff"/>
+        </g>
+        <path d="M 390 800 L 390 990 A 150 150 0 0 0 690 990 L 690 800" fill="none" stroke="#8fb4ff" stroke-width="88"/>
+        <rect x="357" y="614" width="66" height="130" rx="16" fill="#eaf1ff"/>
+        <rect x="657" y="614" width="66" height="130" rx="16" fill="#eaf1ff"/>
+      </svg>
+      <div class="endbar" id="endbar">COMING SOON</div>
+      <div class="endline" id="endline">theplugfinds.com</div>
+    </div>
+  </div>
+
+  <div class="brandbar"><b>THE PLUG</b><span id="tc">00:00</span></div>
+  <div class="vig"></div><div class="scan"></div><div class="grain"></div>
+</div>
+
+<script src="reel_img/images.js"></script>
+<script>
+/* Every frame is drawn from scratch for a given time, so rendering frame 37
+   twice gives the same picture — which is what makes this filmable at all. */
+const P = new URLSearchParams(location.search);
+const FPS = +(P.get("fps") || 12);
+const F = +(P.get("f") || 0);
+const T = F / FPS;
+
+const IMGS = window.REEL_IMAGES || [];
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const ease = t => t < 0 ? 0 : t > 1 ? 1 : 1 - Math.pow(1 - t, 3);
+const span = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+
+/* scene windows, in seconds */
+const S = {s1:[0.0, 2.6], s2:[2.6, 6.4], s3:[6.4, 8.2], s4:[8.2, 10.0]};
+
+function setScene(id, on, prog){
+  const el = document.getElementById(id);
+  el.style.opacity = on ? 1 : 0;
+  if(on) el.style.transform = "translateY(" + ((1 - ease(prog)) * 26) + "px)";
+}
+
+for(const k in S){
+  const [a, b] = S[k];
+  const on = T >= a && T < b;
+  setScene(k, on, span(T, a, a + 0.5));
+}
+
+/* clock in the corner */
+document.getElementById("tc").textContent =
+  "00:" + String(Math.floor(T)).padStart(2, "0");
+
+/* --- scene 1: the comment types itself in --- */
+{
+  const [a] = S.s1;
+  const t = T - a;
+  const line = "where's the jacket from??";
+  const n = Math.floor(clamp((t - 0.55) / 1.0, 0, 1) * line.length);
+  document.getElementById("ctext").textContent = line.slice(0, n);
+  document.getElementById("q1").style.opacity = ease(span(t, 0.0, 0.35));
+  document.getElementById("q2").style.opacity = ease(span(t, 0.18, 0.5));
+  document.getElementById("nob").style.opacity = ease(span(t, 1.9, 2.3));
+}
+
+/* --- scene 2: link, scan, answers --- */
+{
+  const [a] = S.s2;
+  const t = T - a;
+  const url = "tiktok.com/@olugarcia/photo/765763...";
+  const n = Math.floor(clamp(t / 0.8, 0, 1) * url.length);
+  document.getElementById("urltext").textContent = url.slice(0, n);
+
+  const p = clamp((t - 0.85) / 1.15, 0, 1);
+  document.getElementById("prog").style.width = (p * 100) + "%";
+  const phases = ["Reading the comments…", "Matching the names…", "Found it."];
+  document.getElementById("phase").textContent =
+    phases[Math.min(2, Math.floor(p * 3))];
+
+  const found = [
+    {cat:"Jacket", brand:"CORTEIZ", conf:"81%"},
+    {cat:"Jeans",  brand:"REPRESENT", conf:"74%"}
+  ];
+  const rows = document.getElementById("rows");
+  rows.innerHTML = "";
+  found.forEach((f, i) => {
+    const show = span(t, 2.15 + i * 0.28, 2.5 + i * 0.28);
+    if(show <= 0) return;
+    const d = document.createElement("div");
+    d.className = "row";
+    d.style.opacity = ease(show);
+    d.style.transform = "translateY(" + ((1 - ease(show)) * 18) + "px)";
+    d.innerHTML = '<div class="ico">' + f.conf + '</div><div class="txt">' +
+      '<div class="cat">' + f.cat + '</div><div class="bd">' + f.brand + '</div></div>';
+    rows.appendChild(d);
+  });
+  const showP = span(t, 2.85, 3.25);
+  if(showP > 0 && IMGS.length){
+    const it = IMGS[0];
+    const d = document.createElement("div");
+    d.className = "prod";
+    d.style.opacity = ease(showP);
+    d.innerHTML = '<img src="reel_img/' + it.file + '">' +
+      '<div><div class="pn">' + it.name.slice(0, 26) + '</div>' +
+      '<div class="ps">' + it.price + ' · in stock</div></div><div class="go">→</div>';
+    rows.appendChild(d);
+  }
+}
+
+/* --- scene 3: the rail, and the counters --- */
+{
+  const [a] = S.s3;
+  const t = T - a;
+  const rail = document.getElementById("rail");
+  if(!rail.dataset.done){
+    rail.innerHTML = IMGS.slice(0, 9).map(i =>
+      '<div><img src="reel_img/' + i.file + '"></div>').join("");
+    rail.dataset.done = "1";
+  }
+  const k = ease(span(t, 0, 1.4));
+  rail.style.transform = "scale(" + (1.14 - k * 0.14) + ")";
+  document.getElementById("cnt1").textContent = Math.round(548 * ease(span(t, 0.15, 1.1)));
+  document.getElementById("cnt2").textContent =
+    Math.round(2350 * ease(span(t, 0.35, 1.3))).toLocaleString("en-US");
+}
+
+/* --- scene 4: the mark lands --- */
+{
+  const [a] = S.s4;
+  const t = T - a;
+  const k = ease(span(t, 0, 0.5));
+  const g = document.getElementById("plugglow");
+  if(g) g.setAttribute("opacity", String(0.35 + 0.5 * Math.abs(Math.sin(t * 2.2))));
+  document.getElementById("endbar").style.opacity = ease(span(t, 0.45, 0.8));
+  document.getElementById("endline").style.opacity = ease(span(t, 0.7, 1.05));
+  document.querySelector("#s4 .end svg").style.transform = "scale(" + (0.94 + k * 0.06) + ")";
+}
+</script>
+</body></html>
