@@ -1,7 +1,7 @@
 /* The Plug — service worker.
    Shell is cached so the app opens instantly and survives a dead connection;
    API calls and shop images always go to the network. */
-const CACHE = "plug-20260823003350";
+const CACHE = "plug-20260824204011";
 const SHARE = "plug-share";        // one slot, for the image being handed over
 const SHARE_KEY = "/__shared-image";
 const SHELL = ["/", "/assets/js/catalog.js", "/manifest.webmanifest",

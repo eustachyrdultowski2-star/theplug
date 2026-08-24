@@ -48,6 +48,27 @@ def shopify(domain, limit=10, timeout=6):
     return out
 
 
+# Guessing a domain from a name lands on the wrong shop often enough that the
+# catalog has to be read before it is believed. "Drescode" resolved to a
+# dropshipping store selling lubricant and phone cases under a streetwear name,
+# and nothing in the old check would have noticed.
+DROPSHIP = re.compile(r"""
+    shipping\s*protection | discreet\s*shipping
+  | lubricant | lube | masturbat | vibrator | penis | sex\s*toy
+  | teeth\s*whiten | hair\s*removal | posture\s*corrector
+  | iphone\s*case | screen\s*protector | car\s*mount
+  | as\s*seen\s*on\s*tv | the\s*\#1
+""", re.I | re.X)
+
+
+def looks_like_a_clothing_shop(prods) -> bool:
+    """One junk title is a stray product; a quarter of them is the whole shop."""
+    if not prods:
+        return False
+    junk = sum(1 for p in prods if DROPSHIP.search(p.get("title") or ""))
+    return junk / len(prods) < 0.25
+
+
 def find(brand):
     """Return (domain, products) for the first candidate that answers."""
     for dom in candidates(brand["brand"]):
@@ -55,8 +76,12 @@ def find(brand):
             prods = shopify(dom)
         except Exception:
             continue
-        if len(prods) >= 3:               # a real shop, not a parked page
-            return dom, prods
+        if len(prods) < 3:                # a parked page, not a shop
+            continue
+        if not looks_like_a_clothing_shop(prods):
+            print(f"  skip {brand['brand'][:24]:24} -> {dom} (dropshipping catalog)")
+            continue
+        return dom, prods
     return None, []
 
 
