@@ -34,6 +34,53 @@ GARMENT_WORDS = {
     "watch":   ["watch"],
 }
 
+# Zara and friends run no public catalogue, so there is no product row to link.
+# The next best thing is their own search, pre-filled — one click instead of a
+# brand homepage that makes you start again.
+RETAIL_SEARCH = {
+    "zara": "https://www.zara.com/pl/pl/search?searchTerm={q}",
+    "uniqlo": "https://www.uniqlo.com/eu/en/search?q={q}",
+    "hm": "https://www2.hm.com/pl_pl/search-results.html?q={q}",
+    "handm": "https://www2.hm.com/pl_pl/search-results.html?q={q}",
+    "bershka": "https://www.bershka.com/pl/search?q={q}",
+    "pullbear": "https://www.pullandbear.com/pl/search?q={q}",
+    "stradivarius": "https://www.stradivarius.com/pl/search?q={q}",
+    "massimodutti": "https://www.massimodutti.com/pl/search?q={q}",
+    "mango": "https://shop.mango.com/pl/search?q={q}",
+    "cos": "https://www.cos.com/en_pln/search.html?q={q}",
+    "arket": "https://www.arket.com/en_pln/search.html?q={q}",
+    "weekday": "https://www.weekday.com/en_pln/search.html?q={q}",
+    "monki": "https://www.monki.com/en_pln/search.html?q={q}",
+    "reserved": "https://www.reserved.com/pl/pl/search?q={q}",
+    "cropp": "https://www.cropp.com/pl/pl/search?q={q}",
+    "houseofsunny": "https://houseofsunny.co.uk/search?q={q}",
+    "carhartt": "https://www.carhartt-wip.com/en/search?q={q}",
+    "levis": "https://www.levi.com/PL/en/search?q={q}",
+    "acnestudios": "https://www.acnestudios.com/pl/en/search?q={q}",
+    "stoneisland": "https://www.stoneisland.com/en-pl/search?q={q}",
+    "arcteryx": "https://arcteryx.com/pl/en/search?q={q}",
+    "salomon": "https://www.salomon.com/en-pl/search?q={q}",
+}
+
+GARMENT_QUERY = {
+    "jeans": "jeans", "shoes": "shoes", "belt": "belt", "shirt": "shirt",
+    "jacket": "jacket", "knit": "knitwear", "scarf": "scarf", "hat": "cap",
+    "bag": "bag", "glasses": "sunglasses", "jewelry": "jewellery", "watch": "watch",
+}
+
+
+def retail_search(brand_name, garment=""):
+    """A ready-made search on the label's own shop, or None."""
+    tpl = RETAIL_SEARCH.get(key(brand_name))
+    if not tpl:
+        return None
+    q = (brand_name + " " + GARMENT_QUERY.get(garment, garment or "")).strip()
+    import urllib.parse as _u
+    url = tpl.format(q=_u.quote_plus(GARMENT_QUERY.get(garment, garment) or ""))
+    host = _u.urlparse(url).netloc.replace("www.", "")
+    return {"url": url, "shop": host}
+
+
 CCY_BY_COUNTRY = {"USA": "$", "UK": "£", "Australia": "A$", "Canada": "C$",
                   "Japan": "¥", "Korea": "₩", "South Korea": "₩", "Poland": "zł"}
 

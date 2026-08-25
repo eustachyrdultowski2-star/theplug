@@ -179,7 +179,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     found = product_lookup.find(brand, cat)
                 except Exception:
                     found = None                     # a shop being down is not an error here
-                return self._json(200, {"product": found})
+                search = None
+                if not found:
+                    try:
+                        search = product_lookup.retail_search(brand, cat)
+                    except Exception:
+                        search = None
+                return self._json(200, {"product": found, "search": search})
 
             if name == "/api/config":
                 return self._json(200, {"googleClientId":
@@ -227,7 +233,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                              "/api/auth/delete", "/api/admin/delete",
                              "/api/closet/add", "/api/closet/remove",
                              "/api/profile", "/api/link",
-                             "/api/ask", "/api/ask/answer", "/api/admin/ask"):
+                             "/api/ask", "/api/ask/answer", "/api/admin/ask",
+                             "/api/lens"):
             return self._json(404, {"error": "not found"})
         try:
             n = int(self.headers.get("Content-Length", 0))
@@ -273,6 +280,29 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     return self._json(400, {"error": "no_email"})
                 gone = auth.delete_by_email(email)
                 return self._json(200, {"deleted": gone})
+
+            if self.path == "/api/lens":
+                # the exact piece, found by eye: run the cover frame of the
+                # video (or a screenshot the user gave us) through Lens and
+                # keep the shopping matches, brand's own shop first
+                img = (body.get("img") or "").strip()
+                link = (body.get("url") or "").strip()
+                want = (body.get("brand") or "").strip().lower().replace(" ", "")
+                try:
+                    if img:
+                        matches = image_search.search_data_url(img)
+                    else:
+                        thumb = brand_detect.fetch_bundle(link).get("thumbnail")
+                        if not thumb:
+                            return self._json(400, {"error": "no_picture"})
+                        matches = image_search.lens_search(thumb)
+                except Exception as e:
+                    return self._json(200, {"matches": [], "error": str(e)[:120]})
+                if want:
+                    matches.sort(key=lambda m: 0 if want[:6] in
+                                 (m.get("source", "") + m.get("link", "")).lower().replace(" ", "")
+                                 else 1)
+                return self._json(200, {"matches": matches[:6]})
 
             if self.path == "/api/ask":
                 row, err = community.submit(self._me(), body.get("photo"),

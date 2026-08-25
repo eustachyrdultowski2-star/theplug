@@ -646,7 +646,10 @@ def fetch_oembed(url: str) -> dict:
     if not author:                       # photo posts often omit it — take it from the url
         m = re.search(r"tiktok\.com/@([A-Za-z0-9._]+)/", url)
         author = m.group(1) if m else None
-    return {"caption": data.get("title", ""), "author": author, "comments": []}
+    return {"caption": data.get("title", ""), "author": author, "comments": [],
+            # the cover frame is free here and is the only picture we get
+            # without paying a scraper — visual search starts from it
+            "thumbnail": data.get("thumbnail_url")}
 
 
 # ---- Apify provider (comments) --------------------------------------------
@@ -736,6 +739,11 @@ def fetch_bundle(url: str, use_cache: bool = True) -> dict:
             b = fetch_oembed(url)
     else:
         b = fetch_oembed(url)
+    if not b.get("thumbnail"):
+        try:
+            b["thumbnail"] = fetch_oembed(url).get("thumbnail")
+        except Exception:
+            pass
     try:
         os.makedirs(CACHE_DIR, exist_ok=True)
         with open(cp, "w", encoding="utf-8") as f:
