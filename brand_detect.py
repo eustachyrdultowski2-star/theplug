@@ -59,6 +59,23 @@ BRAND_DB = [
     {"name": "Our Legacy",          "handles": ["ourlegacy"],                           "aliases": ["our legacy"], "indie": False},
 ]
 
+# Comments that suggest a lookalike instead of naming the piece. This is where
+# the Zara/Uniqlo/Acne noise came from: under every fit somebody writes "you
+# can get similar at Zara", and a run of those out-voted the one person who
+# actually knew the label. A dupe tip is not an identification.
+DUPE_RE = re.compile(
+    r"\b(similar|similiar|dupes?|dupe|cheaper|cheap(er)? version|look ?a?like|"
+    r"looks like|same but|instead|alternatives?|knock ?off|inspired|copy|copies|"
+    r"fake|reps?|budget|poor man'?s|get (it|one) at|you can find)\b"
+    r"|podobn|tańsz|tansz|zamiennik|odpowiednik|jak z|imitacj",
+    re.I)
+
+# The high street is a real answer sometimes, but it is also the default guess
+# of anybody who does not know. Without a creator saying so or an @tag, these
+# start a little behind the specific labels.
+HIGH_STREET = {"zara", "uniqlo", "hm", "handm", "bershka", "pullbear", "primark",
+               "shein", "asos", "mango", "reserved", "cropp", "housebrand"}
+
 # question phrases that mean "where is this from?" (EN + PL)
 QUESTION_HINTS = [
     "where", "link", "brand", "id on", "sauce", "plug", "where's", "where is",
@@ -218,10 +235,15 @@ def detect_brand(bundle: dict) -> dict:
     for c in comments:
         text = c["text"]
         is_creator = c.get("is_creator") or (creator and c.get("author") == creator)
+        if DUPE_RE.search(text) and not is_creator:
+            continue                       # "similar at Zara" names a substitute
         for b in BRAND_DB:
             for a in b["aliases"]:
                 if a in norm(text) and b["handles"][0] not in text.lower():
-                    bump(b["name"], 7 if is_creator else 3, f"named in a comment (“{a}”)", known=b)
+                    pts = 7 if is_creator else 3
+                    if not is_creator and handle_key(b["name"]) in HIGH_STREET:
+                        pts -= 1.5
+                    bump(b["name"], pts, f"named in a comment (“{a}”)", known=b)
                     break
         for u in URL_RE.findall(text):
             host = urllib.parse.urlparse(u).netloc.replace("www.", "")
@@ -274,6 +296,14 @@ GARMENTS = [
     ("jewelry", ["ring", "necklace", "chain", "bracelet", "earring", "pendant"]),
     ("watch",   ["watch", "watches"]),
 ]
+
+# brand names that are also ordinary English, so a bare mention proves nothing
+COMMON_WORDS = {
+    "represent", "nothing", "basic", "本", "society", "heaven", "paradise",
+    "vintage", "market", "studio", "studios", "collective", "supply", "goods",
+    "clothing", "apparel", "wear", "denim", "atelier", "archive", "gallery",
+    "post", "core", "type", "form", "object", "objects", "series", "unit",
+}
 
 # words that look like brand answers but are not
 NOT_BRANDS = {
@@ -360,6 +390,37 @@ def garment_of(text: str):
     return None
 
 
+_catalog_names = None
+
+
+def catalog_names():
+    """Every brand in our own catalogue, ready to be spotted in a comment.
+
+    BRAND_DB holds a dozen labels by hand, which is why "boots are mutimer"
+    used to return nothing: the answer was sitting in our database all along,
+    just not in the little list. Names that double as ordinary words are left
+    out — matching "Represent" inside "represent me" helps nobody.
+    """
+    global _catalog_names
+    if _catalog_names is not None:
+        return _catalog_names
+    out = {}
+    try:
+        import product_lookup
+        for row in product_lookup.brands():
+            name = (row.get("brand") or "").strip()
+            k = norm(name)
+            if len(k) < 4 or k in NOT_BRANDS or k in GARMENT_WORDS:
+                continue
+            if k in COMMON_WORDS:
+                continue
+            out[k] = name
+    except Exception:
+        out = {}
+    _catalog_names = out
+    return _catalog_names
+
+
 def brand_candidates(text: str):
     """Pull possible brand names out of a free-text comment."""
     out = []
@@ -372,6 +433,10 @@ def brand_candidates(text: str):
             if a in norm(text):
                 out.append((b["name"], 5))
                 break
+    flat = " " + norm(text) + " "                   # our own catalogue, lower case and all
+    for key, name in catalog_names().items():
+        if " " + key + " " in flat:
+            out.append((name, 5))
     for m in CAP_RE.findall(text):                  # capitalised words near a garment
         out.append((m.strip(), 2))
 
@@ -414,17 +479,33 @@ def detect_items(bundle: dict, min_score: float = 4.0):
         k = norm(c.get("text", ""))[:40]
         text_counts[k] = text_counts.get(k, 0) + 1
 
-    per = {}   # (slide, garment) -> {brandKey: {...}}
+    per = {}        # (slide, garment) -> {brandKey: {...}}
+    homeless = []   # named a brand but no garment anywhere in the thread
+    seen_cats = {}  # garment -> the slide it was mentioned with
     for c in comments:
         text = c.get("text", "")
         if SPAM_RE.search(text) or text_counts.get(norm(text)[:40], 0) >= 3:
             continue
         cat = inherit(c, garment_of)
+        if cat:
+            seen_cats.setdefault(cat, inherit(c, slide_of))
         if not cat:
+            is_creator0 = c.get("is_creator") or (creator and c.get("author") == creator)
+            for name, weight in brand_candidates(text):
+                if creator and handle_key(name) == handle_key(creator):
+                    continue
+                who = "creator" if is_creator0 else "commenter"
+                homeless.append((name, weight + (8 if is_creator0 else 0),
+                                 f"{who}: “{' '.join(text.split())[:64]}”",
+                                 c.get("author") or text[:10],
+                                 weight >= 6 or name.startswith("@")))
             continue
         slide = inherit(c, slide_of)
         is_creator = c.get("is_creator") or (creator and c.get("author") == creator)
         likes = c.get("likes", 0) or 0
+        # a lookalike tip answers a different question than the one being asked
+        if DUPE_RE.search(text) and not is_creator:
+            continue
         asking = any(h in norm(text) for h in QUESTION_HINTS) and not brand_candidates(text)
         if asking:
             per.setdefault((slide, cat), {})     # register the question itself
@@ -450,11 +531,37 @@ def detect_items(bundle: dict, min_score: float = 4.0):
                 score += 8
             if looks_brandy(name):
                 score += 4
+            if key in HIGH_STREET and not is_creator and weight < 6:
+                score -= 2          # the default guess of somebody who is guessing
             score += min(likes / 60.0, 4)
             slot["score"] += score
             slot["voices"].add(c.get("author") or text[:10])
             who = "creator" if is_creator else "commenter"
             slot["evidence"].append(f"{who}: “{' '.join(text.split())[:64]}”")
+
+    # "it's zara" under a video where only the jacket was ever questioned is an
+    # answer about the jacket. Attach the homeless evidence, but only when
+    # there is exactly one thing being asked about, so nothing is invented.
+    # a question phrased loosely ("whats the hoodie") registers no bucket, but
+    # the video is plainly about one garment — open it so the answer lands
+    if not per and len(seen_cats) == 1 and homeless:
+        cat0, slide0 = next(iter(seen_cats.items()))
+        per[(slide0, cat0)] = {}
+
+    if len(per) == 1 and homeless:
+        only = next(iter(per))
+        bucket = per[only]
+        for name, weight, ev, voice, mentioned in homeless:
+            key = handle_key(name)
+            slot = bucket.setdefault(key, {"name": name.lstrip("@"), "score": 0.0,
+                                           "evidence": [], "voices": set(), "mentioned": False})
+            slot["mentioned"] = slot["mentioned"] or mentioned
+            slot["score"] += weight
+            slot["voices"].add(voice)
+            slot["evidence"].append(ev)
+
+    canon = {handle_key(b["name"]): b["name"] for b in BRAND_DB}
+    canon.update({handle_key(v): v for v in catalog_names().values()})
 
     results = []
     for (slide, cat), brands in per.items():
@@ -469,7 +576,7 @@ def detect_items(bundle: dict, min_score: float = 4.0):
         results.append({
             "category": cat,
             "slide": slide,
-            "brand": best["name"],
+            "brand": canon.get(handle_key(best["name"]), best["name"]),
             # only claim a profile when somebody actually @-tagged it —
             # guessing instagram.com/<name> sends people to a random stranger
             "handle": ("@" + handle_key(best["name"])) if best.get("mentioned") else None,
@@ -481,6 +588,32 @@ def detect_items(bundle: dict, min_score: float = 4.0):
                              sorted(brands.items(), key=lambda kv: -kv[1]["score"])[1:4]
                              if b["score"] >= max(min_score, best["score"] * 0.45)][:2],
         })
+    # A video that answers "Zara, Zara, Zara" is not answering. Unless somebody
+    # @-tagged the label for that specific garment, a brand may win once: it
+    # keeps the garment it fits best and the others fall to their runner-up.
+    best_for = {}
+    for r in results:
+        k = handle_key(r["brand"])
+        if r.get("verified_handle"):
+            continue
+        if k not in best_for or r["confidence"] > best_for[k]["confidence"]:
+            best_for[k] = r
+    kept = []
+    for r in results:
+        k = handle_key(r["brand"])
+        if r.get("verified_handle") or best_for.get(k) is r:
+            kept.append(r)
+            continue
+        alt = next((a for a in r.get("alternatives") or []), None)
+        if alt:
+            r["brand"] = alt
+            r["alternatives"] = [x for x in r["alternatives"] if x != alt]
+            r["confidence"] = max(35, r["confidence"] - 18)
+            r["evidence"] = (r.get("evidence") or [])[:1]
+            kept.append(r)
+        # no runner-up worth showing: better to say nothing about that garment
+    results = kept
+
     # slide order first (unattributed pieces last), then confidence
     results.sort(key=lambda r: (r["slide"] if r["slide"] else 99, -r["confidence"]))
     return results
